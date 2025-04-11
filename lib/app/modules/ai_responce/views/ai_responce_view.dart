@@ -71,12 +71,12 @@ class AiResponceView extends GetView<AiResponceController> {
                     Icons.flag,
                     color: Colors.white,
                   )),
-              IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.refresh,
-                    color: Colors.white,
-                  )),
+              // IconButton(
+              //     onPressed: () {},
+              //     icon: Icon(
+              //       Icons.refresh,
+              //       color: Colors.white,
+              //     )),
               SizedBox(
                 width: 16,
               )
@@ -231,7 +231,8 @@ class ParagraphContentView extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(32, 4, 4, 4),
               // decoration: BoxDecoration(border: Border.all()),
               child: MarkdownBody(
-                data: '$type\n$data',
+                data: data,
+                // data: '$type\n$data',
                 styleSheet: MarkdownStyleSheet(
                   p: const TextStyle(
                       fontSize: 16, color: Color(0xFF333333)), // Dark gray text

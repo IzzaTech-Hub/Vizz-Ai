@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/rc_variables.dart';
@@ -11,7 +12,40 @@ class HomeController extends GetxController {
     super.onInit();
   }
 
+  void showLoading(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevents closing by tapping outside
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 10),
+                Text("Loading...", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// Hide the loading dialog
+  void hideLoading(BuildContext context) {
+    Navigator.pop(context);
+  }
+
   Future<String> generateContent(String prompt) async {
+  
     String sysinstructionprompt =
         // '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
         // - 'hierarchy' (tree structure)
