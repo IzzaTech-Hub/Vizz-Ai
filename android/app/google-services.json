@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "263188405647",
+    "project_id": "ai-visualizer-fd4eb",
+    "storage_bucket": "ai-visualizer-fd4eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263188405647:android:2aabc94b4f19b94ed97ffa",
+        "android_client_info": {
+          "package_name": "com.example.napkin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARYZAjJ26CsF-SXHoxH2ZTUs5IaVOkhX0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

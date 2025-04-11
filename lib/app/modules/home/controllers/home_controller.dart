@@ -1,0 +1,115 @@
+import 'package:get/get.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:napkin/app/data/rc_variables.dart';
+
+class HomeController extends GetxController {
+  //TODO: Implement HomeController
+
+  final count = 0.obs;
+  @override
+  void onInit() {
+    super.onInit();
+  }
+
+  Future<String> generateContent(String prompt) async {
+    String sysinstructionprompt =
+        // '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
+        // - 'hierarchy' (tree structure)
+
+        '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
+        - 'key_points' (bullet points/unordered list)
+        - 'graph' (data in values/also in unordered list)
+        - 'comparison/differentiate' (tables/relationship)
+        - 'step_by_step' (ordered lists/process flow/algorithms).
+    - Content should be wrapped in normal markdown syntax. Keep sentences concise and properly formatted.
+    - Headings (H1-H3) should follow standard markdown syntax (# H1, ## H2, ### H3). Use them to structure the content logically.
+    - Bold (**text**) and Italic (*text*) should be used where necessary to emphasize key points.
+    - Links ([text](URL)) should be clearly structured, using simple URLs.
+    - Lists should be formatted correctly:
+    - Ordered lists (1. Item) should contain at least three points.
+    - Unordered lists (- Item) should use dashes (-) and maintain uniform indentation.
+    - Code Blocks should be enclosed with triple backticks (```) and specify the programming language (e.g., ```dart for Dart code). Keep indentation clean and consistent.
+    - Blockquotes (> Text) should be used for important notes or callouts.
+    - Tables should be formatted using | Column 1 | Column 2 | syntax, with proper alignment.
+    - Make sure the output is structured, readable, and follows best markdown practices. Format everything cleanly, keeping it simple yet visually appealing."
+
+    Make at least 10 paragraphs but a paragraph should only contain a particular topic with different types of markdown content. 
+    make esure you use all the paragraph types in appropriate place like: 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' .
+    if there are lists that should not be devided into multiple paragraph. and headings should be in same paragraph of its content.
+    ''';
+    // Each paragraph should contain only on one type.
+
+    final model = GenerativeModel(
+      model: RcVariables.geminiAiModel,
+      // model: 'gemini-2.0-flash-lite',
+      // model: 'gemini-1.5-pro',
+      // model: 'gemini-1.5-flash-8b',
+      // model: 'gemini-1.5-flash',
+      // apiKey: 'AIzaSyCj-pkjlMrppk-ZNsPlkFq5U9t9jeUahr8',
+      apiKey: RcVariables.apikey,
+      generationConfig: GenerationConfig(
+          temperature: 1,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+          responseSchema: Schema(SchemaType.object, requiredProperties: [
+            "paragraphs"
+          ], properties: {
+            "paragraphs": Schema(
+              SchemaType.array,
+              items: Schema(SchemaType.object, requiredProperties: [
+                "type",
+                "paragraph"
+              ], properties: {
+                "type": Schema(SchemaType.string, enumValues: [
+                  // 'hierarchy',
+                  'key_points',
+                  'graph',
+                  'comparison/differentiate',
+                  'step_by_step'
+                ]),
+                "paragraph": Schema(
+                  SchemaType.string,
+                )
+              }),
+            ),
+          })),
+      systemInstruction: Content.system(sysinstructionprompt),
+    );
+
+    final content = [
+      // Content.multi([TextPart("Generate json")]),
+      Content.text(
+          // "Make The course content devided into 4 or more stages. each stage contains 2 to 5 chapter and each chapter covers 3 to 6 subtopics."
+          prompt),
+    ];
+
+    try {
+      final response = await model.generateContent(content);
+      // print(response);
+      // myresponce.value = response.text!;
+
+      print('Respons: ${response.text}');
+      return response.text!;
+      // print('Respons: ${myresponce.value}');
+    } catch (e) {
+      print('failed');
+      print(e.toString());
+      // hasError.value = true;
+      return '';
+    }
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+  }
+
+  void increment() => count.value++;
+}
