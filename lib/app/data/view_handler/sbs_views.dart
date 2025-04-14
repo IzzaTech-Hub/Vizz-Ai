@@ -8,7 +8,9 @@ import 'package:napkin/app/data/theme_assets/theme_functions.dart';
 
 class StepByStepViews {
   static Widget getTheme(int index, StepByStepModel model) {
-       List<Widget> themes = [_theme0(model), _theme1(model)];
+    List<Widget> themes = [
+      _theme0(model),
+    ];
     return themes[Random().nextInt(themes.length)];
     // switch (index) {
     //   case 0:
@@ -21,11 +23,14 @@ class StepByStepViews {
   }
 
   static Widget _theme0(StepByStepModel model) {
-    return StepChainView(
-      titles: model.steps.map((e) => e.title).toList(),
-      subtitles: model.steps.map((e) => e.description).toList(),
-      iconsnames: model.steps.map((e) => e.flutterIconName).toList(),
-      steps: model.steps.length,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: StepChainView(
+        titles: model.steps.map((e) => e.title).toList(),
+        subtitles: model.steps.map((e) => e.description).toList(),
+        iconsnames: model.steps.map((e) => e.flutterIconName).toList(),
+        steps: model.steps.length,
+      ),
     );
     //  ListView.builder(
     //   itemCount: model.steps.length,
