@@ -189,102 +189,158 @@ class ParagraphContentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    RxBool clicked = false.obs;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8),
-      child: Stack(
-        children: [
-          // const Divider(),
-          // Text(type),
-          // const Divider(),
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50, // Red background
-                  // borderRadius: BorderRadius.circular(12),
-                  border: Border(
-                    left: BorderSide(
-                      color: Colors.redAccent.shade400, // Dark red left border
-                      width: 10, // Thick border
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 12),
+      child: Obx(
+        () => Transform.scale(
+          scale: clicked.value ? 1.05 : 1,
+          child: Stack(
+            children: [
+              // const Divider(),
+              // Text(type),
+              // const Divider(),
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50, // Red background
+                      // borderRadius: BorderRadius.circular(12),
+                      border: Border(
+                        left: BorderSide(
+                          color:
+                              Colors.redAccent.shade400, // Dark red left border
+                          width: 10, // Thick border
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
 
-          InkWell(
-            onTap: () async {
-              showLoading(context);
-              String pt = await generateKeyWords();
-              hideLoading(context);
-              Map<String, dynamic> ptt = jsonDecode(pt);
-              // print('pt $ptt');
+              Listener(
+                onPointerDown: (_) {
+                  // setState(() => _isPressed = true);
+                  clicked.value = true;
+                },
+                onPointerUp: (_) {
+                  clicked.value = false;
+                  // setState(() => _isPressed = false);
+                },
+                onPointerCancel: (_) {
+                  clicked.value = false;
+                  // setState(() => _isPressed = false);
+                },
+                // onTapDown: (value) {
+                //   // Get.snackbar('title', 'message');
+                //   clicked.value = true;
+                // },
+                // onPanDown: (details) {
+                //   // Get.snackbar('title', 'message');
+                //   clicked.value = true;
+                // },
+                // onTapUp: (details) {
+                //   clicked.value = false;
+                // },
+                // onPanEnd: (details) {
+                //   clicked.value = false;
+                // },
+                // // onPanCancel: () {
+                // //   clicked.value = false;
+                // // },
+                // onPanStart: (details) {
+                //   clicked.value = true;
+                // },
 
-              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-              Get.toNamed(Routes.SHOW_GRAPH, arguments: [type, ptt]);
-              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-              // generated.value = true;
-            },
-            child: Container(
-              padding: EdgeInsets.fromLTRB(32, 4, 4, 4),
-              // decoration: BoxDecoration(border: Border.all()),
-              child: MarkdownBody(
-                data: data,
-                // data: '$type\n$data',
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(
-                      fontSize: 16, color: Color(0xFF333333)), // Dark gray text
-                  strong: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue), // Bold text
-                  em: const TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.black), // Italic text
-                  a: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF007AFF),
-                      decoration:
-                          TextDecoration.underline), // Link color (Blue)
-                  code: const TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'monospace',
-                      fontStyle: FontStyle.italic,
-                      backgroundColor: Color.fromARGB(255, 255, 242, 217),
-                      color: Color.fromARGB(255, 255, 95, 95)), // Code block
-                  h1: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red[900]), // H1
-                  h2: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.purple[600]), // H2
-                  h3: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red), // H3
-                  blockquoteDecoration: const BoxDecoration(
-                    color: Color(0xFFF5F5F5),
-                    border: Border(
-                        left: BorderSide(color: Color(0xFFCCCCCC), width: 4)),
-                  ),
-                  listBullet:
-                      const TextStyle(fontSize: 16, color: Colors.black),
-                  codeblockDecoration: BoxDecoration(
-                    color: const Color(0xff23241f),
-                    borderRadius: BorderRadius.circular(8),
+                // onTap: () async {
+                //   showLoading(context);
+                //   String pt = await generateKeyWords();
+                //   hideLoading(context);
+                //   Map<String, dynamic> ptt = jsonDecode(pt);
+                //   // print('pt $ptt');
+
+                //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
+                //   Get.toNamed(Routes.SHOW_GRAPH, arguments: [type, ptt]);
+                //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+                //   // generated.value = true;
+                // },
+                child: InkWell(
+                  onTap: () async {
+                    showLoading(context);
+                    String pt = await generateKeyWords();
+                    hideLoading(context);
+                    Map<String, dynamic> ptt = jsonDecode(pt);
+                    // print('pt $ptt');
+
+                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
+                    Get.toNamed(Routes.SHOW_GRAPH, arguments: [type, ptt]);
+                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+                    // generated.value = true;
+                  },
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(32, 4, 4, 4),
+                    // decoration: BoxDecoration(border: Border.all()),
+                    child: MarkdownBody(
+                      data: data,
+                      // data: '$type\n$data',
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF333333)), // Dark gray text
+                        strong: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue), // Bold text
+                        em: const TextStyle(
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.black), // Italic text
+                        a: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF007AFF),
+                            decoration:
+                                TextDecoration.underline), // Link color (Blue)
+                        code: const TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'monospace',
+                            fontStyle: FontStyle.italic,
+                            backgroundColor: Color.fromARGB(255, 255, 242, 217),
+                            color:
+                                Color.fromARGB(255, 255, 95, 95)), // Code block
+                        h1: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[900]), // H1
+                        h2: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple[600]), // H2
+                        h3: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red), // H3
+                        blockquoteDecoration: const BoxDecoration(
+                          color: Color(0xFFF5F5F5),
+                          border: Border(
+                              left: BorderSide(
+                                  color: Color(0xFFCCCCCC), width: 4)),
+                        ),
+                        listBullet:
+                            const TextStyle(fontSize: 16, color: Colors.black),
+                        codeblockDecoration: BoxDecoration(
+                          color: const Color(0xff23241f),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
-
       //  Column(
       //   children: [
       //     // const Divider(),
