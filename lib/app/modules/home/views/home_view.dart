@@ -120,7 +120,7 @@ class HomeView extends GetView<HomeController> {
                Text(
                 'AI Visualizer',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: Colors.redAccent.shade700
                   // color: Colors.black
@@ -128,9 +128,9 @@ class HomeView extends GetView<HomeController> {
               ),
               const SizedBox(height: 8),
                Text(
-                'Visualize ideas in seconds',
+                'Visualize your ideas in seconds',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   color: Colors.redAccent.shade400,
                   // color: Colors.grey.shade600,
                 ),
@@ -260,7 +260,7 @@ Obx(() => Align(
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              prompt,
+              '"$prompt"',
               style: const TextStyle(fontSize: 14),
             ),
           ),

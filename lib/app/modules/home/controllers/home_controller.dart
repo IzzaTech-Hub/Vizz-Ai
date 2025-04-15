@@ -9,21 +9,21 @@ class HomeController extends GetxController {
     final promptText = ''.obs;
   final isLoading = false.obs;
   final List<String> allPrompts = [
- '"Futuristic city"',
-  '"Coffee logo"',
-  '"Weather flowchart"',
-  '"Space station"',
-  '"AI assistant UI"',
-  '"Pet shop logo"',
-  '"Travel poster"',
-  '"Smart home app"',
-  '"Fitness dashboard"',
-  '"Eco-friendly house"',
-  '"Vintage car sketch"',
-  '"E-learning layout"',
-  '"Music player UI"',
-  '"Food delivery map"',
-  '"Tech startup logo"',
+ "Futuristic city",
+  "Coffee logo",
+  "Weather flowchart",
+  "Space station",
+  "AI assistant UI",
+  "Pet shop logo",
+  "Travel poster",
+  "Smart home app",
+  "Fitness dashboard",
+  "Eco-friendly house",
+  "Vintage car sketch",
+  "E-learning layout",
+  "Music player UI",
+  "Food delivery map",
+  "Tech startup logo",
   ];
 
 final RxList<String> examplePrompts = <String>[].obs;

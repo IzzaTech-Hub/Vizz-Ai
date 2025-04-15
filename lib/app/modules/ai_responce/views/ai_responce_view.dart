@@ -11,6 +11,7 @@ import 'package:napkin/app/data/gemini_ai/ai_schema.dart';
 // import 'package:napkin/app/data/graph_handler.dart';
 // import 'package:napkin/app/data/model_classes/key_points.dart';
 import 'package:napkin/app/data/rc_variables.dart';
+import 'package:napkin/app/modules/home/controllers/home_controller.dart';
 import 'package:napkin/app/routes/app_pages.dart';
 import 'package:napkin/app/services/feedback_service.dart';
 // import 'package:napkin/app/data/size_config.dart';
@@ -47,7 +48,11 @@ class AiResponceView extends GetView<AiResponceController> {
             ),
             leading: IconButton(
                 onPressed: () {
+                  HomeController hc =Get.find();
+                  hc.initPrompts();
+                  hc.textEditingController.clear();
                   Get.back();
+                  // Get.offAllNamed(Routes.HOME);
                 },
                 icon: Icon(
                   Icons.arrow_back_ios_new_outlined,
@@ -309,8 +314,8 @@ class ParagraphContentView extends StatelessWidget {
                             color:
                                 Color.fromARGB(255, 255, 95, 95)), // Code block
                         h1: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
                             color: Colors.red[900]), // H1
                         h2: TextStyle(
                             fontSize: 20,

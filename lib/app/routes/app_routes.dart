@@ -3,6 +3,7 @@ part of 'app_pages.dart';
 
 abstract class Routes {
   Routes._();
+  static const SPLASHVIEW = _Paths.SPLASHVIEW;
   static const HOME = _Paths.HOME;
   static const AI_RESPONCE = _Paths.AI_RESPONCE;
   static const SHOW_GRAPH = _Paths.SHOW_GRAPH;
@@ -10,6 +11,7 @@ abstract class Routes {
 
 abstract class _Paths {
   _Paths._();
+  static const SPLASHVIEW = '/SPLASHVIEW';
   static const HOME = '/home';
   static const AI_RESPONCE = '/ai-responce';
   static const SHOW_GRAPH = '/show-graph';
