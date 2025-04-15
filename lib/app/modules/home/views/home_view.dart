@@ -11,7 +11,7 @@ import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   HomeView({super.key});
-  final TextEditingController _controller = TextEditingController();
+  
 
   @override
   Widget build(BuildContext context) {
@@ -109,100 +109,169 @@ class HomeView extends GetView<HomeController> {
     //   ),
     // );
     return Scaffold(
-      // appBar: AppBar(title: const Text("Stateless Text Input")),
-      backgroundColor: Colors.white,
-      // backgroundColor: Colors.redAccent.shade700.withOpacity(0.2),
-      body: Stack(
-        children: [
-          Expanded(
-              child: Container(
-            color: Colors.redAccent.shade400.withOpacity(0.4),
-          )),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Transform.scale(
-                    scale: 1.5,
-                    child: SizedBox(
-                      width: SizeConfig.screenWidth,
-                      height: 350,
-                      child: RiveAnimation.asset(
-                        'assets/rives/vizz.riv',
-                        fit: BoxFit.fitWidth,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            // mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              
+              // Header
+              verticalSpace(SizeConfig.blockSizeVertical * 8),
+               Text(
+                'AI Visualizer',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.redAccent.shade700
+                  // color: Colors.black
+                ),
+              ),
+              const SizedBox(height: 8),
+               Text(
+                'Visualize ideas in seconds',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.redAccent.shade400,
+                  // color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 32),
+          
+              // Input Box
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: SizeConfig.blockSizeHorizontal * 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    TextField(
+                      // onChanged: controller.setPrompt,
+                      controller: controller.textEditingController,
+                     
+                      decoration: InputDecoration(
+                        hintText: 'What you want to visualize...',
+                        hintStyle: TextStyle(fontSize: SizeConfig.blockSizeHorizontal * 3.5,color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Color(0xFFE9ECEF)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:  BorderSide(color: Colors.redAccent.shade700),
+                        ),
+                        contentPadding: const EdgeInsets.all(16),
                       ),
                     ),
-                  ),
-                  // TextField(
-
-                  //   controller: _controller,
-                  //   decoration: const InputDecoration(
-                  //     labelText: "Enter text",
-                  //     border: OutlineInputBorder(),
-                  //   ),
-                  // ),
-                  TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      labelText: "Enter Title",
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(30), // or any large value
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide:
-                            BorderSide(color: Colors.redAccent.shade400),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide:
-                            BorderSide(color: Colors.redAccent.shade400),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  InkWell(
-                    onTap: () async {
-                      // Get.toNamed(Routes.SHOW_GRAPH);
-                      controller.showLoading(context);
-                      String inputText = _controller.text;
+                    const SizedBox(height: 16),
+                    Obx(() => controller.isLoading.value
+                      ? const CircularProgressIndicator()
+                      :GestureDetector(
+                        onTap: ()async{
+                           controller.showLoading(context);
+                      String inputText = controller.textEditingController.text;
                       String responce =
                           await controller.generateContent(inputText);
                       controller.hideLoading(context);
                       Get.toNamed(Routes.AI_RESPONCE, arguments: [responce]);
-                    },
-                    child: Container(
-                      width: SizeConfig.screenWidth / 2,
-                      height: 50,
-                      decoration: BoxDecoration(
-                          color: Colors.redAccent.shade400,
-                          borderRadius: BorderRadius.circular(100)),
-                      child: Center(
-                        child: Text(
-                          'Generate VIZZ',
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
+
+                        },
+                        child: Container(
+                          height: SizeConfig.blockSizeVertical * 6,
+                          width: SizeConfig.blockSizeHorizontal * 45,
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            borderRadius: BorderRadius.circular(SizeConfig.blockSizeHorizontal * 2)
+                          ),
+                          child: Center(
+                            child: Text("Generate",style: TextStyle(
+                              fontSize: SizeConfig.blockSizeHorizontal * 4,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white
+                            ),),
+                          ),
                         ),
-                      ),
+                      )
+                      // : ElevatedButton(
+                      //     style: ElevatedButton.styleFrom(
+                      //       backgroundColor: const Color(0xFF6E56CF),
+                      //       minimumSize: const Size(double.infinity, 48),
+                      //       shape: RoundedRectangleBorder(
+                      //         borderRadius: BorderRadius.circular(8),
+                      //       ),
+                      //     ),
+                      //     onPressed: controller.generateVisualization,
+                      //     child: const Text(
+                      //       'Generate',
+                      //       style: TextStyle(
+                      //         fontSize: 16,
+                      //         fontWeight: FontWeight.w500,
+                      //       ),
+                      //     ),
+                      //   ),
+                    ),
+                  ],
+                ),
+              ),
+          
+              // Example Prompts
+              const SizedBox(height: 32),
+               Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding:  EdgeInsets.only(left: SizeConfig.blockSizeHorizontal * 4),
+                  child: Text(
+                    'Try an example:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade900,
+                      fontWeight: FontWeight.bold
                     ),
                   ),
-                  // ElevatedButton(
-                  //   onPressed: () async {
-                  //     // Get.toNamed(Routes.SHOW_GRAPH);
-                  //     String inputText = _controller.text;
-                  //     String responce =
-                  //         await controller.generateContent(inputText);
-                  //     Get.toNamed(Routes.AI_RESPONCE, arguments: [responce]);
-                  //   },
-                  //   child: const Text("Generate"),
-                  // ),
-                ],
+                ),
               ),
+            const SizedBox(height: 20),
+Obx(() => Align(
+  alignment: Alignment.centerLeft,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+  
+    children: controller.examplePrompts.map((prompt) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 35,bottom: 12),
+        child: GestureDetector(
+          onTap: () => controller.setPrompt(prompt),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9ECEF),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              prompt,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
-        ],
+        ),
+      );
+    }).toList(),
+  ),
+)),
+            ],
+          ),
+        ),
       ),
     );
   }

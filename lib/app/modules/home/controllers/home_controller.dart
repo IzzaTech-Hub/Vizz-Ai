@@ -4,12 +4,55 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/rc_variables.dart';
 
 class HomeController extends GetxController {
+  final TextEditingController textEditingController = TextEditingController();
   //TODO: Implement HomeController
+    final promptText = ''.obs;
+  final isLoading = false.obs;
+  final List<String> allPrompts = [
+ '"Futuristic city"',
+  '"Coffee logo"',
+  '"Weather flowchart"',
+  '"Space station"',
+  '"AI assistant UI"',
+  '"Pet shop logo"',
+  '"Travel poster"',
+  '"Smart home app"',
+  '"Fitness dashboard"',
+  '"Eco-friendly house"',
+  '"Vintage car sketch"',
+  '"E-learning layout"',
+  '"Music player UI"',
+  '"Food delivery map"',
+  '"Tech startup logo"',
+  ];
+
+final RxList<String> examplePrompts = <String>[].obs;
+
+void initPrompts() {
+  allPrompts.shuffle();
+  examplePrompts.value = allPrompts.take(3).toList();
+}
+  
+
+    void setPrompt(String text) {
+    promptText.value = text;
+    textEditingController.text = text;
+  }
+
+  void generateVisualization() async {
+    isLoading.value = true;
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 2));
+    isLoading.value = false;
+    Get.snackbar('Success', 'Visualization generated!');
+  }
 
   final count = 0.obs;
   @override
   void onInit() {
+    initPrompts();
     super.onInit();
+    
   }
 
   void showLoading(BuildContext context) {
@@ -50,7 +93,7 @@ class HomeController extends GetxController {
         // '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
         // - 'hierarchy' (tree structure)
 
-        '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
+        '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraphs also tell the best type of paragraph to explain from 'key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
         - 'key_points' (bullet points/unordered list)
         - 'graph' (data in values/also in unordered list)
         - 'comparison/differentiate' (tables/relationship)
@@ -67,9 +110,9 @@ class HomeController extends GetxController {
     - Tables should be formatted using | Column 1 | Column 2 | syntax, with proper alignment.
     - Make sure the output is structured, readable, and follows best markdown practices. Format everything cleanly, keeping it simple yet visually appealing."
 
-    Make at least 10 paragraphs but a paragraph should only contain a particular topic with different types of markdown content. 
+    Make at least 10 paragraphs but a paragraph should only contain a particular topic with several types of markdown content. 
     make esure you use all the paragraph types in appropriate place like: 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' .
-    if there are lists that should not be devided into multiple paragraph. and headings should be in same paragraph of its content.
+    if there are lists that should not be devided into multiple paragraphs. and headings should be in same paragraphs of its content.
     ''';
     // Each paragraph should contain only on one type.
 
