@@ -26,7 +26,7 @@ class AiResponceController extends GetxController {
   Rx<SlideData> slideData =
       SlideData(mainTitle: '', slidePart: <Rx<SlidePart>>[].obs).obs;
   List<Widget> slides = [];
-  var isAllowBackButton = false.obs;
+  var isAllowBackButton = true.obs;
 
   List<String> typesList = [];
   final count = 0.obs;
@@ -55,7 +55,7 @@ class AiResponceController extends GetxController {
     final pres = FlutterPowerPoint();
 
     for (Widget slide in slides) {
-      await pres.addWidgetSlide((size) => slide, pixelRatio: 5.0);
+      await pres.addWidgetSlide((size) => slide, pixelRatio: 8.0);
     }
     final bytes = await pres.save();
     Directory appDocDir = await getApplicationDocumentsDirectory();
@@ -69,7 +69,7 @@ class AiResponceController extends GetxController {
     return filePath;
   }
 
-  bool isBackAllowed() {
+  Future<bool> isBackAllowed() async {
     return isAllowBackButton.value;
   }
 

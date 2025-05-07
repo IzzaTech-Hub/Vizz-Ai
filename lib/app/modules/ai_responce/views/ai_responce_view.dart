@@ -35,7 +35,7 @@ class AiResponceView extends GetView<AiResponceController> {
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12),
         child: Container(
-          height: SizeConfig.screenHeight * 0.3,
+          height: SizeConfig.screenHeight * 0.36,
           width: SizeConfig.screenWidth * 0.9,
           decoration: BoxDecoration(
             color: Colors.red.shade50, // Red background
@@ -65,7 +65,7 @@ class AiResponceView extends GetView<AiResponceController> {
     SizeConfig().init(context);
     return WillPopScope(
       onWillPop: () async {
-        return controller.isBackAllowed();
+        return await controller.isBackAllowed();
       },
       child: Scaffold(
           bottomSheet: Container(
@@ -80,7 +80,6 @@ class AiResponceView extends GetView<AiResponceController> {
                 final filePath = await Get.showOverlay(
                     asyncFunction: () async {
                       var filePath = await controller.generatePPTX();
-                      controller.isAllowBackButton.value = true;
                       return filePath;
                     },
                     loadingWidget: Center(
@@ -102,6 +101,7 @@ class AiResponceView extends GetView<AiResponceController> {
                         )
                       ],
                     )));
+                controller.isAllowBackButton.value = true;
 
                 controller.shareFile(filePath);
               },
@@ -109,7 +109,7 @@ class AiResponceView extends GetView<AiResponceController> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
                   child: Text(
-                    "Save",
+                    "Save & Share",
                     style: TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.w900,
@@ -343,38 +343,39 @@ class ParagraphContentView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 14),
         child: Obx(() {
           final part = slidePart.value;
-          return Container(
-            height: SizeConfig.screenHeight * 0.3,
-            width: SizeConfig.screenWidth * 0.9,
-            decoration: BoxDecoration(
-              color: Colors.red.shade50, // Red background
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
-            child: Column(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      showLoading(context);
-                      String pt = await generateKeyWords();
-                      hideLoading(context);
-                      Map<String, dynamic> ptt = jsonDecode(pt);
-                      // print('pt $ptt');
+          return GestureDetector(
+            onTap: () async {
+              showLoading(context);
+              String pt = await generateKeyWords();
+              hideLoading(context);
+              Map<String, dynamic> ptt = jsonDecode(pt);
+              // print('pt $ptt');
 
-                      // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-                      // controller.setGraph(index, ptt, part.type);
-                      Get.toNamed(Routes.SHOW_GRAPH,
-                          arguments: [part.type, ptt]);
+              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
+              // controller.setGraph(index, ptt, part.type);
+              Get.toNamed(Routes.SHOW_GRAPH, arguments: [part.type, ptt]);
 
-                      // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-                      // generated.value = true;
-                    },
+              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+              // generated.value = true;
+            },
+            child: Container(
+              height: SizeConfig.screenHeight * 0.36,
+              width: SizeConfig.screenWidth * 0.9,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50, // Red background
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Expanded(
                     child: Row(
                       children: [
                         Expanded(
                           child: Container(
-                            height: SizeConfig.screenHeight * 0.3,
+                            alignment: Alignment.topLeft,
+                            // height: SizeConfig.screenHeight * 0.3,
                             // width: SizeConfig.screenWidth * 0.9,
                             padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
                             // decoration: BoxDecoration(border: Border.all()),
@@ -473,8 +474,8 @@ class ParagraphContentView extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }),

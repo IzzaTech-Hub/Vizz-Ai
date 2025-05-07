@@ -90,29 +90,41 @@ class HomeController extends GetxController {
         // '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
         // - 'hierarchy' (tree structure)
 
-        '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraphs also tell the best type of paragraph to explain from 'key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
-        - 'key_points' (bullet points/unordered list)
-        - 'graph' (data in values/also in unordered list)
-        - 'comparison/differentiate' (tables/relationship)
-        - 'step_by_step' (ordered lists/process flow/algorithms).
-    - Content should be wrapped in normal markdown syntax. Keep sentences concise and properly formatted.
-    - Headings (H1-H3) should follow standard markdown syntax (# H1, ## H2, ### H3). Use them to structure the content logically.
-    - Bold (**text**) and Italic (*text*) should be used where necessary to emphasize key points.
-    - Links ([text](URL)) should be clearly structured, using simple URLs.
-    - Lists should be formatted correctly:
-    - Ordered lists (1. Item) should contain at least three points.
-    - Unordered lists (- Item) should use dashes (-) and maintain uniform indentation.
-    - Code Blocks should be enclosed with triple backticks (```) and specify the programming language (e.g., ```dart for Dart code). Keep indentation clean and consistent.
-    - Blockquotes (> Text) should be used for important notes or callouts.
-    - Tables should be formatted using | Column 1 | Column 2 | syntax, with proper alignment.
-    - Make sure the output is structured, readable, and follows best markdown practices. Format everything cleanly, keeping it simple yet visually appealing."
+        '''Generate a complete presentation on the given topic. The presentation must consist of exactly 10 paragraphs, each focusing on a distinct subtopic with a specific visualization type from the following options:
 
-    Make at least 10 paragraphs but a paragraph should only contain a particular topic with several types of markdown content.
-    Maximum of 2 rows are allowed for a table. 
-    Table should be used only when necessary without any following paragraph.
-    make sure you use all the paragraph types in appropriate place like: 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' .
-    Each list must contain heading at top with content below it, not a single paragraph should be without a heading.
-    The content below the heading should not exceed limit of 3 lines.
+- **'paragraph'** - A brief, well-structured text paragraph that introduces or elaborates on a concept.  
+- **'key_points'** - Use bullet points/unordered lists to present concise key points.  
+- **'graph'** - Include data values formatted as an unordered list. Data must be presented clearly for graphical representation.  
+- **'comparison/differentiate'** - Use a table with a maximum of 4 rows to present comparisons or relationships.  
+- **'step_by_step'** - Provide an ordered list that illustrates a process, algorithm, or sequence clearly.  
+
+**Content Formatting Rules:**  
+
+1. **Paragraph Structure:**  
+   - Each paragraph must focus on only one visualization type.  
+   - Each paragraph must not exceed **5 lines of content**, including headings, lists, and tables.  
+   - Headings and their associated content must remain within the same paragraph.  
+   - Lists, tables, and blockquotes must not be divided across multiple paragraphs.  
+   - The content must adhere to the specified visualization type strictly without mixing types.  
+
+2. **Markdown Syntax:**  
+   - Use appropriate headings (`#`, `##`, `###`) for each paragraph.  
+   - Apply bold (`**text**`) and italic (`*text*`) styles for emphasis where necessary.  
+   - Hyperlinks must follow the format `[text](URL)` and must be used sparingly.  
+   - Code blocks, if included, should be enclosed within triple backticks (```) and specify the language.  
+
+3. **Content Clarity:**  
+   - Keep sentences concise, informative, and grammatically correct.  
+   - Ensure that content remains structured, readable, and visually appealing.  
+   - Maintain logical flow and coherence across paragraphs, aligning with the overall topic.  
+
+4. **Strict Adherence:**  
+   - Do **not exceed 5 lines per paragraph**, including lists and tables.  
+   - Ensure each paragraph adheres to its designated visualization type without mixing multiple types.  
+   - Every paragraph must clearly specify its type (`paragraph`, `key_points`, `graph`, `comparison/differentiate`, `step_by_step`).  
+
+Format all content clearly, adhering to the above instructions strictly.
+
 
     ''';
     // Each paragraph should contain only on one type.
