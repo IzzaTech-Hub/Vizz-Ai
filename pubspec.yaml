@@ -48,6 +48,12 @@ dependencies:
   font_awesome_flutter: ^10.8.0
   google_fonts: ^6.2.1
   rive: ^0.7.16
+  flutter_pptx:
+    git:
+      url: https://github.com/ranasherry/flutter_pptx.git
+      path: packages/flutter_pptx
+      ref: main
+  share_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:

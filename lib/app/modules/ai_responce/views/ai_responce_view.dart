@@ -8,12 +8,18 @@ import 'package:get/get.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/gemini_ai/ai_prompt.dart';
 import 'package:napkin/app/data/gemini_ai/ai_schema.dart';
+import 'package:napkin/app/data/model_classes/slideData.dart';
+import 'package:napkin/app/data/model_classes/slidePart.dart';
 // import 'package:napkin/app/data/graph_handler.dart';
 // import 'package:napkin/app/data/model_classes/key_points.dart';
 import 'package:napkin/app/data/rc_variables.dart';
+import 'package:napkin/app/data/size_config.dart';
+import 'package:napkin/app/data/view_handler/view_handler.dart';
 import 'package:napkin/app/modules/home/controllers/home_controller.dart';
 import 'package:napkin/app/routes/app_pages.dart';
 import 'package:napkin/app/services/feedback_service.dart';
+import 'package:napkin/app/widgets/start_feedback_widget.dart';
+import 'package:napkin/app/widgets/touch_guide_animation.dart';
 // import 'package:napkin/app/data/size_config.dart';
 
 import '../controllers/ai_responce_controller.dart';
@@ -25,81 +31,212 @@ class AiResponceView extends GetView<AiResponceController> {
   const AiResponceView({super.key});
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        // appBar: AppBar(
-        //   title: const Text('VIZZ AI'),
-        //   centerTitle: true,
-        // ),
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0),
-          child: AppBar(
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.redAccent.shade700,
-                    Colors.redAccent.shade400,
-                    // Colors.red
-                  ], // your gradient colors
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    List<Widget> slides = [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12),
+        child: Container(
+          height: SizeConfig.screenHeight * 0.3,
+          width: SizeConfig.screenWidth * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.red.shade50, // Red background
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+              child: Text(
+            controller.slideData.value.mainTitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 18,
+                color: Colors.red[900],
+                fontWeight: FontWeight.w900),
+          )),
+        ),
+      ),
+    ];
+    for (int i = 0; i < controller.slideData.value.slidePart.length; i++)
+      slides.add(
+        Obx(() => ParagraphContentView(
+              slidePart: controller.slideData.value.slidePart[i],
+              index: i,
+              controller: controller,
+            )),
+      );
+
+    SizeConfig().init(context);
+    return WillPopScope(
+      onWillPop: () async {
+        return controller.isBackAllowed();
+      },
+      child: Scaffold(
+          bottomSheet: Container(
+            height: SizeConfig.blockSizeHorizontal * 20,
+            // padding: EdgeInsets.only(top: 10),
+            color: const Color.fromARGB(255, 255, 82, 82), // Red background
+            child: GestureDetector(
+              onTap: () async {
+                print("button pressed");
+                controller.slides = slides;
+                controller.isAllowBackButton.value = false;
+                final filePath = await Get.showOverlay(
+                    asyncFunction: () async {
+                      var filePath = await controller.generatePPTX();
+                      controller.isAllowBackButton.value = true;
+                      return filePath;
+                    },
+                    loadingWidget: Center(
+                        child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        Container(
+                          padding: EdgeInsets.only(
+                              top: SizeConfig.blockSizeHorizontal * 5),
+                          child: Text(
+                            "Generating slides...",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 20,
+                                decoration: TextDecoration.none,
+                                color: Colors.white),
+                          ),
+                        )
+                      ],
+                    )));
+
+                controller.shareFile(filePath);
+              },
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                  child: Text(
+                    "Save",
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16),
+                  ),
+                  decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                            color: const Color.fromARGB(255, 196, 0, 0),
+                            offset: Offset(2, 4),
+                            blurRadius: 20,
+                            spreadRadius: 3)
+                      ],
+                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.white),
                 ),
               ),
             ),
-            leading: IconButton(
-                onPressed: () {
-                  HomeController hc =Get.find();
-                  hc.initPrompts();
-                  hc.textEditingController.clear();
-                  Get.back();
-                  // Get.offAllNamed(Routes.HOME);
-                },
-                icon: Icon(
-                  Icons.arrow_back_ios_new_outlined,
-                  color: Colors.white,
-                )),
-            title: const Text(
-              'VIZZ AI',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            centerTitle: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0, // optional, for a flat look
-            actions: [
-              IconButton(
+          ),
+
+          // appBar: AppBar(
+          //   title: const Text('VIZZ AI'),
+          //   centerTitle: true,
+          // ),
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(60.0),
+            child: AppBar(
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.redAccent.shade700,
+                      Colors.redAccent.shade400,
+                      // Colors.red
+                    ], // your gradient colors
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+              leading: IconButton(
                   onPressed: () {
-                    FeedbackService().showFeedbackDialog(
-                        context, controller.allcontentString!);
+                    HomeController hc = Get.find();
+                    hc.initPrompts();
+                    hc.textEditingController.clear();
+                    Get.back();
+                    // Get.offAllNamed(Routes.HOME);
                   },
                   icon: Icon(
-                    Icons.flag,
+                    Icons.arrow_back_ios_new_outlined,
                     color: Colors.white,
                   )),
-              // IconButton(
-              //     onPressed: () {},
-              //     icon: Icon(
-              //       Icons.refresh,
-              //       color: Colors.white,
-              //     )),
-              SizedBox(
-                width: 16,
-              )
-            ],
-          ),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (int i = 0; i < controller.paragraphsList.length; i++)
-                ParagraphContentView(
-                  data: controller.paragraphsList[i],
-                  type: controller.typesList[i],
+              title: const Text(
+                'VIZZ AI',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              centerTitle: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0, // optional, for a flat look
+              actions: [
+                StarFeedbackWidget(
+                  size: SizeConfig.blockSizeHorizontal * 5,
+                  mainContext: context,
+                  icon: Icons.flag,
+                ),
+                // IconButton(
+                //     onPressed: () {},
+                //     icon: Icon(
+                //       Icons.refresh,
+                //       color: Colors.white,
+                //     )),
+                SizedBox(
+                  width: 16,
                 )
-            ],
+              ],
+            ),
           ),
-        ));
+          body: Obx(() => controller.slideData.value.slidePart.isEmpty
+              ? CircularProgressIndicator()
+              : SafeArea(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        bottom: SizeConfig.blockSizeHorizontal * 20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (Widget slide in slides) slide
+                          // Padding(
+                          //   padding: const EdgeInsets.symmetric(
+                          //       vertical: 10.0, horizontal: 12),
+                          //   child: Container(
+                          //     height: SizeConfig.screenHeight * 0.3,
+                          //     width: SizeConfig.screenWidth * 0.9,
+                          //     decoration: BoxDecoration(
+                          //       color: Colors.red.shade50, // Red background
+                          //       borderRadius: BorderRadius.circular(16),
+                          //     ),
+                          //     child: Center(
+                          //         child: Text(
+                          //       controller.slideData.value.mainTitle,
+                          //       textAlign: TextAlign.center,
+                          //       style: TextStyle(
+                          //           fontSize: 18,
+                          //           color: Colors.red[900],
+                          //           fontWeight: FontWeight.w900),
+                          //     )),
+                          //   ),
+                          // ),
+                          // // TouchToSplitBox(),
+                          // for (int i = 0;
+                          //     i < controller.slideData.value.slidePart.length;
+                          //     i++)
+                          //   Obx(() => ParagraphContentView(
+                          //         slidePart:
+                          //             controller.slideData.value.slidePart[i],
+                          //         index: i,
+                          //         controller: controller,
+                          //       )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ))),
+    );
   }
 
   // Widget _theoryTypePageContent(String data) {
@@ -109,12 +246,17 @@ class AiResponceView extends GetView<AiResponceController> {
 }
 
 class ParagraphContentView extends StatelessWidget {
-  String data;
-  String type;
+  Rx<SlidePart> slidePart;
+  int index;
+  AiResponceController controller;
   // RxBool generated = false.obs;
   // KeyPoints? keyPoints;
   // String genContent = '';
-  ParagraphContentView({super.key, required this.data, required this.type});
+  ParagraphContentView(
+      {super.key,
+      required this.slidePart,
+      required this.index,
+      required this.controller});
   void showLoading(BuildContext context) {
     showDialog(
       context: context,
@@ -148,7 +290,8 @@ class ParagraphContentView extends StatelessWidget {
   }
 
   Future<String> generateKeyWords() async {
-    String sysinstructionprompt = AiPrompt().getSystemInstructions(type);
+    String sysinstructionprompt =
+        AiPrompt().getSystemInstructions(slidePart.value.type);
     // Each paragraph should contain only on one type.
     print(sysinstructionprompt);
     final model = GenerativeModel(
@@ -165,7 +308,7 @@ class ParagraphContentView extends StatelessWidget {
           topP: 0.95,
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
-          responseSchema: AiSchema().getJsonSchema(type)),
+          responseSchema: AiSchema().getJsonSchema(slidePart.value.type)),
       systemInstruction: Content.system(sysinstructionprompt),
     );
 
@@ -173,7 +316,7 @@ class ParagraphContentView extends StatelessWidget {
       // Content.multi([TextPart("Generate json")]),
       Content.text(
           // "Make The course content devided into 4 or more stages. each stage contains 2 to 5 chapter and each chapter covers 3 to 6 subtopics."
-          data),
+          slidePart.value.slideContent),
     ];
 
     try {
@@ -195,250 +338,240 @@ class ParagraphContentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     RxBool clicked = false.obs;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 12),
-      child: Obx(
-        () => Transform.scale(
-          scale: clicked.value ? 1.05 : 1,
-          child: Stack(
-            children: [
-              // const Divider(),
-              // Text(type),
-              // const Divider(),
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50, // Red background
-                      // borderRadius: BorderRadius.circular(12),
-                      border: Border(
-                        left: BorderSide(
-                          color:
-                              Colors.redAccent.shade400, // Dark red left border
-                          width: 10, // Thick border
+    return LayoutBuilder(builder: (context, constraints) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 14),
+        child: Obx(() {
+          final part = slidePart.value;
+          return Container(
+            height: SizeConfig.screenHeight * 0.3,
+            width: SizeConfig.screenWidth * 0.9,
+            decoration: BoxDecoration(
+              color: Colors.red.shade50, // Red background
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
+            child: Column(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      showLoading(context);
+                      String pt = await generateKeyWords();
+                      hideLoading(context);
+                      Map<String, dynamic> ptt = jsonDecode(pt);
+                      // print('pt $ptt');
+
+                      // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
+                      // controller.setGraph(index, ptt, part.type);
+                      Get.toNamed(Routes.SHOW_GRAPH,
+                          arguments: [part.type, ptt]);
+
+                      // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+                      // generated.value = true;
+                    },
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: SizeConfig.screenHeight * 0.3,
+                            // width: SizeConfig.screenWidth * 0.9,
+                            padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                            // decoration: BoxDecoration(border: Border.all()),
+                            child: MarkdownBody(
+                              data: part.slideContent,
+                              // data: '$type\n$data',
+                              styleSheet: MarkdownStyleSheet(
+                                p: const TextStyle(
+                                  fontSize: 12.6,
+                                  color: Color(0xFF333333),
+                                ),
+                                strong: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                                em: const TextStyle(
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.black,
+                                ),
+                                a: const TextStyle(
+                                  fontSize: 9.6,
+                                  color: Color(0xFF007AFF),
+                                  decoration: TextDecoration.underline,
+                                ),
+                                code: const TextStyle(
+                                  fontSize: 9.6,
+                                  fontFamily: 'monospace',
+                                  fontStyle: FontStyle.italic,
+                                  backgroundColor:
+                                      Color.fromARGB(255, 255, 242, 217),
+                                  color: Color.fromARGB(255, 255, 95, 95),
+                                ),
+                                h1: TextStyle(
+                                  fontSize: 16.8,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.red[900],
+                                ),
+                                h2: TextStyle(
+                                  fontSize: 15.6,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.purple[600],
+                                ),
+                                h3: const TextStyle(
+                                  fontSize: 14.4,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                                blockquoteDecoration: const BoxDecoration(
+                                  color: Color(0xFFF5F5F5),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: Color(0xFFCCCCCC),
+                                      width: 4,
+                                    ),
+                                  ),
+                                ),
+                                listBullet: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                ),
+                                tableHead: const TextStyle(
+                                  fontSize: 13.2,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                ),
+                                tableBody: const TextStyle(
+                                  fontSize: 9.6,
+                                  color: Color(0xFF333333),
+                                ),
+                                tableCellsPadding: EdgeInsets.all(5),
+                                codeblockDecoration: BoxDecoration(
+                                  color: const Color(0xff23241f),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        part.isShowGraph.value
+                            ? SizedBox(
+                                height: SizeConfig.blockSizeHorizontal * 30,
+                                width: SizeConfig.blockSizeHorizontal * 30,
+                                child: ViewHandler(
+                                  type: part.type,
+                                  hierarchy: part.hierarchy,
+                                  keyPoints: part.keyPoints,
+                                  graph: part.graph,
+                                  sbs: part.sbs,
+                                  comparison: part.comparison,
+                                  themeIndex: 0,
+                                ),
+                              )
+                            : Container()
+                      ],
                     ),
                   ),
                 ),
-              ),
-
-              Listener(
-                onPointerDown: (_) {
-                  // setState(() => _isPressed = true);
-                  clicked.value = true;
-                },
-                onPointerUp: (_) {
-                  clicked.value = false;
-                  // setState(() => _isPressed = false);
-                },
-                onPointerCancel: (_) {
-                  clicked.value = false;
-                  // setState(() => _isPressed = false);
-                },
-                // onTapDown: (value) {
-                //   // Get.snackbar('title', 'message');
-                //   clicked.value = true;
-                // },
-                // onPanDown: (details) {
-                //   // Get.snackbar('title', 'message');
-                //   clicked.value = true;
-                // },
-                // onTapUp: (details) {
-                //   clicked.value = false;
-                // },
-                // onPanEnd: (details) {
-                //   clicked.value = false;
-                // },
-                // // onPanCancel: () {
-                // //   clicked.value = false;
-                // // },
-                // onPanStart: (details) {
-                //   clicked.value = true;
-                // },
-
-                // onTap: () async {
-                //   showLoading(context);
-                //   String pt = await generateKeyWords();
-                //   hideLoading(context);
-                //   Map<String, dynamic> ptt = jsonDecode(pt);
-                //   // print('pt $ptt');
-
-                //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-                //   Get.toNamed(Routes.SHOW_GRAPH, arguments: [type, ptt]);
-                //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-                //   // generated.value = true;
-                // },
-                child: InkWell(
-                  onTap: () async {
-                    showLoading(context);
-                    String pt = await generateKeyWords();
-                    hideLoading(context);
-                    Map<String, dynamic> ptt = jsonDecode(pt);
-                    // print('pt $ptt');
-
-                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-                    Get.toNamed(Routes.SHOW_GRAPH, arguments: [type, ptt]);
-                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-                    // generated.value = true;
-                  },
-                  child: Container(
-                    padding: EdgeInsets.fromLTRB(32, 4, 4, 4),
-                    // decoration: BoxDecoration(border: Border.all()),
-                    child: MarkdownBody(
-                      data: data,
-                      // data: '$type\n$data',
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF333333)), // Dark gray text
-                        strong: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue), // Bold text
-                        em: const TextStyle(
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                            color: Colors.black), // Italic text
-                        a: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF007AFF),
-                            decoration:
-                                TextDecoration.underline), // Link color (Blue)
-                        code: const TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                            fontStyle: FontStyle.italic,
-                            backgroundColor: Color.fromARGB(255, 255, 242, 217),
-                            color:
-                                Color.fromARGB(255, 255, 95, 95)), // Code block
-                        h1: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.red[900]), // H1
-                        h2: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple[600]), // H2
-                        h3: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red), // H3
-                        blockquoteDecoration: const BoxDecoration(
-                          color: Color(0xFFF5F5F5),
-                          border: Border(
-                              left: BorderSide(
-                                  color: Color(0xFFCCCCCC), width: 4)),
-                        ),
-                        listBullet:
-                            const TextStyle(fontSize: 16, color: Colors.black),
-                        codeblockDecoration: BoxDecoration(
-                          color: const Color(0xff23241f),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      //  Column(
-      //   children: [
-      //     // const Divider(),
-      //     // Text(type),
-      //     // const Divider(),
-      //     InkWell(
-      //       onTap: () async {
-      //         showLoading(context);
-      //         await generateKeyWords();
-      //         hideLoading(context);
-      //         Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-      //         // generated.value = true;
-      //       },
-      //       child: Row(
-      //         crossAxisAlignment: CrossAxisAlignment.center,
-      //         mainAxisAlignment: MainAxisAlignment.start,
-      //         children: [
-      //           // const Icon(Icons.abc),
-      //           Container(
-      //             // decoration: BoxDecoration(border: Border.all()),
-      //             child: Flexible(
-      //               // width: SizeConfig.screenWidth * 0.5,
-      //               child: MarkdownBody(
-      //                 data: data,
-      //                 styleSheet: MarkdownStyleSheet(
-      //                   p: const TextStyle(
-      //                       fontSize: 16,
-      //                       color: Color(0xFF333333)), // Dark gray text
-      //                   strong: const TextStyle(
-      //                       fontSize: 16,
-      //                       fontWeight: FontWeight.bold,
-      //                       color: Colors.blue), // Bold text
-      //                   em: const TextStyle(
-      //                       fontSize: 16,
-      //                       fontStyle: FontStyle.italic,
-      //                       color: Colors.black), // Italic text
-      //                   a: const TextStyle(
-      //                       fontSize: 14,
-      //                       color: Color(0xFF007AFF),
-      //                       decoration:
-      //                           TextDecoration.underline), // Link color (Blue)
-      //                   code: const TextStyle(
-      //                       fontSize: 14,
-      //                       fontFamily: 'monospace',
-      //                       fontStyle: FontStyle.italic,
-      //                       backgroundColor: Color.fromARGB(255, 255, 242, 217),
-      //                       color:
-      //                           Color.fromARGB(255, 255, 95, 95)), // Code block
-      //                   h1: TextStyle(
-      //                       fontSize: 24,
-      //                       fontWeight: FontWeight.bold,
-      //                       color: Colors.red[900]), // H1
-      //                   h2: TextStyle(
-      //                       fontSize: 20,
-      //                       fontWeight: FontWeight.bold,
-      //                       color: Colors.purple[600]), // H2
-      //                   h3: const TextStyle(
-      //                       fontSize: 18,
-      //                       fontWeight: FontWeight.bold,
-      //                       color: Colors.red), // H3
-      //                   blockquoteDecoration: const BoxDecoration(
-      //                     color: Color(0xFFF5F5F5),
-      //                     border: Border(
-      //                         left: BorderSide(
-      //                             color: Color(0xFFCCCCCC), width: 4)),
-      //                   ), // Blockquote
-      //                   listBullet: const TextStyle(
-      //                       fontSize: 16, color: Colors.black), // List bullets
-      //                   codeblockDecoration: BoxDecoration(
-      //                     color: const Color(0xff23241f),
-      //                     borderRadius: BorderRadius.circular(8),
-      //                   ),
-      //                 ),
-      //                 // builders: {
-      //                 //   'pre': CodeElementBuilder(context: context),
-      //                 // },
-      //               ),
-      //             ),
-      //           ),
-      //         ],
-      //       ),
-      //     ),
-      //     // // Flexible(child: Container()),
-      //     // Obx(() => generated.value
-      //     //     ? Container(
-      //     //         child: Column(children: [
-      //     //           GraphHandler().getGraph(keyPoints!),
-      //     //         ]
-      //     //             ),
-      //     //       )
-      //     //     : Container()),
-      //   ],
-      // ),
-    );
+              ],
+            ),
+          );
+        }),
+        //  Column(
+        //   children: [
+        //     // const Divider(),
+        //     // Text(type),
+        //     // const Divider(),
+        //     InkWell(
+        //       onTap: () async {
+        //         showLoading(context);
+        //         await generateKeyWords();
+        //         hideLoading(context);
+        //         Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+        //         // generated.value = true;
+        //       },
+        //       child: Row(
+        //         crossAxisAlignment: CrossAxisAlignment.center,
+        //         mainAxisAlignment: MainAxisAlignment.start,
+        //         children: [
+        //           // const Icon(Icons.abc),
+        //           Container(
+        //             // decoration: BoxDecoration(border: Border.all()),
+        //             child: Flexible(
+        //               // width: SizeConfig.screenWidth * 0.5,
+        //               child: MarkdownBody(
+        //                 data: data,
+        //                 styleSheet: MarkdownStyleSheet(
+        //                   p: const TextStyle(
+        //                       fontSize: 16,
+        //                       color: Color(0xFF333333)), // Dark gray text
+        //                   strong: const TextStyle(
+        //                       fontSize: 16,
+        //                       fontWeight: FontWeight.bold,
+        //                       color: Colors.blue), // Bold text
+        //                   em: const TextStyle(
+        //                       fontSize: 16,
+        //                       fontStyle: FontStyle.italic,
+        //                       color: Colors.black), // Italic text
+        //                   a: const TextStyle(
+        //                       fontSize: 14,
+        //                       color: Color(0xFF007AFF),
+        //                       decoration:
+        //                           TextDecoration.underline), // Link color (Blue)
+        //                   code: const TextStyle(
+        //                       fontSize: 14,
+        //                       fontFamily: 'monospace',
+        //                       fontStyle: FontStyle.italic,
+        //                       backgroundColor: Color.fromARGB(255, 255, 242, 217),
+        //                       color:
+        //                           Color.fromARGB(255, 255, 95, 95)), // Code block
+        //                   h1: TextStyle(
+        //                       fontSize: 24,
+        //                       fontWeight: FontWeight.bold,
+        //                       color: Colors.red[900]), // H1
+        //                   h2: TextStyle(
+        //                       fontSize: 20,
+        //                       fontWeight: FontWeight.bold,
+        //                       color: Colors.purple[600]), // H2
+        //                   h3: const TextStyle(
+        //                       fontSize: 18,
+        //                       fontWeight: FontWeight.bold,
+        //                       color: Colors.red), // H3
+        //                   blockquoteDecoration: const BoxDecoration(
+        //                     color: Color(0xFFF5F5F5),
+        //                     border: Border(
+        //                         left: BorderSide(
+        //                             color: Color(0xFFCCCCCC), width: 4)),
+        //                   ), // Blockquote
+        //                   listBullet: const TextStyle(
+        //                       fontSize: 16, color: Colors.black), // List bullets
+        //                   codeblockDecoration: BoxDecoration(
+        //                     color: const Color(0xff23241f),
+        //                     borderRadius: BorderRadius.circular(8),
+        //                   ),
+        //                 ),
+        //                 // builders: {
+        //                 //   'pre': CodeElementBuilder(context: context),
+        //                 // },
+        //               ),
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     ),
+        //     // // Flexible(child: Container()),
+        //     // Obx(() => generated.value
+        //     //     ? Container(
+        //     //         child: Column(children: [
+        //     //           GraphHandler().getGraph(keyPoints!),
+        //     //         ]
+        //     //             ),
+        //     //       )
+        //     //     : Container()),
+        //   ],
+        // ),
+      );
+    });
   }
 }

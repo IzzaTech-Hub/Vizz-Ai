@@ -6,35 +6,34 @@ import 'package:napkin/app/data/rc_variables.dart';
 class HomeController extends GetxController {
   final TextEditingController textEditingController = TextEditingController();
   //TODO: Implement HomeController
-    final promptText = ''.obs;
+  final promptText = ''.obs;
   final isLoading = false.obs;
   final List<String> allPrompts = [
- "Futuristic city",
-  "Coffee logo",
-  "Weather flowchart",
-  "Space station",
-  "AI assistant UI",
-  "Pet shop logo",
-  "Travel poster",
-  "Smart home app",
-  "Fitness dashboard",
-  "Eco-friendly house",
-  "Vintage car sketch",
-  "E-learning layout",
-  "Music player UI",
-  "Food delivery map",
-  "Tech startup logo",
+    "Futuristic city",
+    "Coffee logo",
+    "Weather flowchart",
+    "Space station",
+    "AI assistant UI",
+    "Pet shop logo",
+    "Travel poster",
+    "Smart home app",
+    "Fitness dashboard",
+    "Eco-friendly house",
+    "Vintage car sketch",
+    "E-learning layout",
+    "Music player UI",
+    "Food delivery map",
+    "Tech startup logo",
   ];
 
-final RxList<String> examplePrompts = <String>[].obs;
+  final RxList<String> examplePrompts = <String>[].obs;
 
-void initPrompts() {
-  allPrompts.shuffle();
-  examplePrompts.value = allPrompts.take(3).toList();
-}
-  
+  void initPrompts() {
+    allPrompts.shuffle();
+    examplePrompts.value = allPrompts.take(3).toList();
+  }
 
-    void setPrompt(String text) {
+  void setPrompt(String text) {
     promptText.value = text;
     textEditingController.text = text;
   }
@@ -52,7 +51,6 @@ void initPrompts() {
   void onInit() {
     initPrompts();
     super.onInit();
-    
   }
 
   void showLoading(BuildContext context) {
@@ -88,7 +86,6 @@ void initPrompts() {
   }
 
   Future<String> generateContent(String prompt) async {
-  
     String sysinstructionprompt =
         // '''Generate a complete presentation on given topic, make a list of paragraphs. in paragraph also tell the best type of paragraph to explain from 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' to tell me in which form i should visualize it.
         // - 'hierarchy' (tree structure)
@@ -110,9 +107,13 @@ void initPrompts() {
     - Tables should be formatted using | Column 1 | Column 2 | syntax, with proper alignment.
     - Make sure the output is structured, readable, and follows best markdown practices. Format everything cleanly, keeping it simple yet visually appealing."
 
-    Make at least 10 paragraphs but a paragraph should only contain a particular topic with several types of markdown content. 
-    make esure you use all the paragraph types in appropriate place like: 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' .
-    if there are lists that should not be devided into multiple paragraphs. and headings should be in same paragraphs of its content.
+    Make at least 10 paragraphs but a paragraph should only contain a particular topic with several types of markdown content.
+    Maximum of 2 rows are allowed for a table. 
+    Table should be used only when necessary without any following paragraph.
+    make sure you use all the paragraph types in appropriate place like: 'hierarchy','key_points','graph','comparison/differentiate','step_by_step' .
+    Each list must contain heading at top with content below it, not a single paragraph should be without a heading.
+    The content below the heading should not exceed limit of 3 lines.
+
     ''';
     // Each paragraph should contain only on one type.
 
@@ -131,13 +132,14 @@ void initPrompts() {
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
           responseSchema: Schema(SchemaType.object, requiredProperties: [
-            "paragraphs"
+            "slidePart",
+            "mainTitle"
           ], properties: {
-            "paragraphs": Schema(
+            "slidePart": Schema(
               SchemaType.array,
               items: Schema(SchemaType.object, requiredProperties: [
                 "type",
-                "paragraph"
+                "slideContent",
               ], properties: {
                 "type": Schema(SchemaType.string, enumValues: [
                   // 'hierarchy',
@@ -146,11 +148,12 @@ void initPrompts() {
                   'comparison/differentiate',
                   'step_by_step'
                 ]),
-                "paragraph": Schema(
+                "slideContent": Schema(
                   SchemaType.string,
-                )
+                ),
               }),
             ),
+            "mainTitle": Schema(SchemaType.string),
           })),
       systemInstruction: Content.system(sysinstructionprompt),
     );
