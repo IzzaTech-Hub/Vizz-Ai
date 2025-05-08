@@ -51,22 +51,48 @@ class AiResponceController extends GetxController {
     ));
   }
 
-  Future<String> generatePPTX() async {
-    final pres = FlutterPowerPoint();
+  Future<String> generatePPTX(BuildContext context, {String? mainTitle}) async {
+    try {
+      final pres = FlutterPowerPoint();
 
-    for (Widget slide in slides) {
-      await pres.addWidgetSlide((size) => slide, pixelRatio: 8.0);
+      for (Widget slide in slides) {
+        await pres.addWidgetSlide((size) => slide,
+            pixelRatio: 6.0, context: context);
+      }
+
+      final bytes = await pres.save();
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception("Failed to generate PowerPoint content.");
+      }
+
+      Directory appDocDir = await getApplicationDocumentsDirectory();
+
+      /// Sanitize the title to prevent double dots and invalid characters.
+      String safeTitle = (slideData.value.mainTitle?.trim().isNotEmpty ?? false)
+          ? slideData.value.mainTitle!
+              .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+              .replaceAll(RegExp(r'\.+'), '.')
+          : 'presentation';
+
+      /// Ensure the filename ends with `.pptx`
+      if (!safeTitle.endsWith('.pptx')) {
+        safeTitle = '$safeTitle.pptx';
+      }
+
+      String filePath = '${appDocDir.path}/$safeTitle';
+      final file = File(filePath);
+
+      await file.writeAsBytes(bytes, flush: true);
+
+      print('PPT generated at: $filePath');
+      Get.snackbar("File Saved", "Slide has been saved as $safeTitle");
+
+      return filePath;
+    } catch (e) {
+      print('Error generating PPTX: $e');
+      Get.snackbar("Error", "Failed to save the PowerPoint file.");
+      return '';
     }
-    final bytes = await pres.save();
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String filePath = '${appDocDir.path}/$mainTitle.pptx';
-    final file = File(filePath);
-    await file.writeAsBytes(bytes!);
-
-    print('PPT generated at: $filePath');
-    Get.snackbar("Image saved", "Slide has been saved");
-
-    return filePath;
   }
 
   Future<bool> isBackAllowed() async {

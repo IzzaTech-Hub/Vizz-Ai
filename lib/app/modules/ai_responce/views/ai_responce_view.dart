@@ -31,12 +31,14 @@ class AiResponceView extends GetView<AiResponceController> {
   const AiResponceView({super.key});
   @override
   Widget build(BuildContext context) {
+    var slideHeight = SizeConfig.screenHeight * 0.25;
+    var slideWidth = SizeConfig.screenWidth * 0.8;
     List<Widget> slides = [
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12),
         child: Container(
-          height: SizeConfig.screenHeight * 0.36,
-          width: SizeConfig.screenWidth * 0.9,
+          height: slideHeight,
+          width: slideWidth,
           decoration: BoxDecoration(
             color: Colors.red.shade50, // Red background
             borderRadius: BorderRadius.circular(16),
@@ -59,6 +61,8 @@ class AiResponceView extends GetView<AiResponceController> {
               slidePart: controller.slideData.value.slidePart[i],
               index: i,
               controller: controller,
+              slideHeight: slideHeight,
+              slideWidth: slideWidth,
             )),
       );
 
@@ -79,7 +83,7 @@ class AiResponceView extends GetView<AiResponceController> {
                 controller.isAllowBackButton.value = false;
                 final filePath = await Get.showOverlay(
                     asyncFunction: () async {
-                      var filePath = await controller.generatePPTX();
+                      var filePath = await controller.generatePPTX(context);
                       return filePath;
                     },
                     loadingWidget: Center(
@@ -249,6 +253,8 @@ class ParagraphContentView extends StatelessWidget {
   Rx<SlidePart> slidePart;
   int index;
   AiResponceController controller;
+  var slideHeight;
+  var slideWidth;
   // RxBool generated = false.obs;
   // KeyPoints? keyPoints;
   // String genContent = '';
@@ -256,7 +262,9 @@ class ParagraphContentView extends StatelessWidget {
       {super.key,
       required this.slidePart,
       required this.index,
-      required this.controller});
+      required this.controller,
+      required this.slideHeight,
+      required this.slideWidth});
   void showLoading(BuildContext context) {
     showDialog(
       context: context,
@@ -359,8 +367,8 @@ class ParagraphContentView extends StatelessWidget {
               // generated.value = true;
             },
             child: Container(
-              height: SizeConfig.screenHeight * 0.36,
-              width: SizeConfig.screenWidth * 0.9,
+              height: slideHeight,
+              width: slideWidth,
               decoration: BoxDecoration(
                 color: Colors.red.shade50, // Red background
                 borderRadius: BorderRadius.circular(16),
@@ -381,29 +389,28 @@ class ParagraphContentView extends StatelessWidget {
                             // decoration: BoxDecoration(border: Border.all()),
                             child: MarkdownBody(
                               data: part.slideContent,
-                              // data: '$type\n$data',
                               styleSheet: MarkdownStyleSheet(
                                 p: const TextStyle(
-                                  fontSize: 12.6,
+                                  fontSize: 10.58, // Increased by 20%
                                   color: Color(0xFF333333),
                                 ),
                                 strong: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 10.08, // Increased by 20%
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue,
                                 ),
                                 em: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 10.08, // Increased by 20%
                                   fontStyle: FontStyle.italic,
                                   color: Colors.black,
                                 ),
                                 a: const TextStyle(
-                                  fontSize: 9.6,
+                                  fontSize: 8.06, // Increased by 20%
                                   color: Color(0xFF007AFF),
                                   decoration: TextDecoration.underline,
                                 ),
                                 code: const TextStyle(
-                                  fontSize: 9.6,
+                                  fontSize: 8.06, // Increased by 20%
                                   fontFamily: 'monospace',
                                   fontStyle: FontStyle.italic,
                                   backgroundColor:
@@ -411,17 +418,17 @@ class ParagraphContentView extends StatelessWidget {
                                   color: Color.fromARGB(255, 255, 95, 95),
                                 ),
                                 h1: TextStyle(
-                                  fontSize: 16.8,
+                                  fontSize: 14.11, // Increased by 20%
                                   fontWeight: FontWeight.w900,
                                   color: Colors.red[900],
                                 ),
                                 h2: TextStyle(
-                                  fontSize: 15.6,
+                                  fontSize: 13.10, // Increased by 20%
                                   fontWeight: FontWeight.bold,
                                   color: Colors.purple[600],
                                 ),
                                 h3: const TextStyle(
-                                  fontSize: 14.4,
+                                  fontSize: 12.10, // Increased by 20%
                                   fontWeight: FontWeight.bold,
                                   color: Colors.red,
                                 ),
@@ -435,22 +442,24 @@ class ParagraphContentView extends StatelessWidget {
                                   ),
                                 ),
                                 listBullet: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 10.08, // Increased by 20%
                                   color: Colors.black,
                                 ),
                                 tableHead: const TextStyle(
-                                  fontSize: 13.2,
+                                  fontSize: 11.09, // Increased by 20%
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF333333),
                                 ),
                                 tableBody: const TextStyle(
-                                  fontSize: 9.6,
+                                  fontSize: 8.06, // Increased by 20%
                                   color: Color(0xFF333333),
                                 ),
-                                tableCellsPadding: EdgeInsets.all(5),
+                                tableCellsPadding: const EdgeInsets.all(
+                                    4.2), // Increased by 20%
                                 codeblockDecoration: BoxDecoration(
                                   color: const Color(0xff23241f),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(
+                                      6.72), // Increased by 20%
                                 ),
                               ),
                             ),

@@ -1,0 +1,2 @@
+C:/Rizwan_laptop/Izzatech/ai_visualizer/android/app/.cxx/RelWithDebInfo/55ib2r1p/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Rizwan_laptop/Izzatech/ai_visualizer/android/app/.cxx/RelWithDebInfo/55ib2r1p/arm64-v8a/CMakeFiles/rebuild_cache.dir
