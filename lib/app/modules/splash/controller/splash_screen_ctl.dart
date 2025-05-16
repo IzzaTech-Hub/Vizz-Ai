@@ -11,7 +11,7 @@ class SplashController extends GetxController {
   @override
   void onInit() async {
     super.onInit();
-    await RemoteConfigService().initialize();
+    // await RemoteConfigService().initialize();
     // AppLovinProvider.instance.init();
     Timer? timer;
     timer = Timer.periodic(Duration(milliseconds: 500), (_) {
