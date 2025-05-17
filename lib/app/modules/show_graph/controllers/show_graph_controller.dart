@@ -27,6 +27,7 @@ class ShowGraphController extends GetxController {
     jsonString = args[1].toString();
     print('type is = $type');
     Map<String, dynamic> jsonData = args[1];
+
     // print(jsonstring);
     // final Map<String, dynamic> jsonData = jsonDecode(jsonstring);
     // try {
@@ -36,6 +37,7 @@ class ShowGraphController extends GetxController {
     //   Get.back();
     // }
     // keyPoints = KeyPoints.fromJson(jsonData);
+    
     switch (type) {
       case 'hierarchy':
         print('parsing by heirarchy');

@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:get/get.dart';
+import 'package:napkin/app/data/size_config.dart';
 // import 'package:napkin/app/data/graph_handler.dart';
 // import 'package:napkin/app/data/size_config.dart';
 // import 'package:napkin/app/data/view_handler/hierarchy_views.dart';
 // import 'package:napkin/app/data/view_handler/keypoints_views.dart';
 import 'package:napkin/app/data/view_handler/view_handler.dart';
 import 'package:napkin/app/services/feedback_service.dart';
+import 'package:napkin/app/widgets/start_feedback_widget.dart';
 
 import '../controllers/show_graph_controller.dart';
 
@@ -57,15 +59,19 @@ class ShowGraphView extends GetView<ShowGraphController> {
             backgroundColor: Colors.transparent,
             elevation: 0, // optional, for a flat look
             actions: [
-              IconButton(
-                  onPressed: () {
-                    FeedbackService().showFeedbackDialog(context,
-                        '${controller.jsonString!},(${controller.type})');
-                  },
-                  icon: Icon(
-                    Icons.flag,
-                    color: Colors.white,
-                  )),
+              StarFeedbackWidget(
+                  size: SizeConfig.blockSizeHorizontal * 5,
+                  mainContext: context,
+                  icon: Icons.flag),
+              // IconButton(
+              //     onPressed: () {
+              //       FeedbackService().showFeedbackDialog(context,
+              //           '${controller.jsonString!},(${controller.type})');
+              //     },
+              //     icon: Icon(
+              //       Icons.flag,
+              //       color: Colors.white,
+              //     )),
               // IconButton(
               //     onPressed: () {},
               //     icon: Icon(
@@ -111,6 +117,3 @@ class ShowGraphView extends GetView<ShowGraphController> {
 //     );
 //   }
 // }
-
-
-
