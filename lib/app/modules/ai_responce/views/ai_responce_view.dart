@@ -31,8 +31,9 @@ class AiResponceView extends GetView<AiResponceController> {
   const AiResponceView({super.key});
   @override
   Widget build(BuildContext context) {
-var      slideHeight= SizeConfig.screenHeight * 0.3;
-    // var slideHeight = SizeConfig.screenWidth * 0.55;
+// var      slideHeight= SizeConfig.screenHeight * 0.3;
+    var slideHeight = SizeConfig.screenWidth * 0.55;
+    // var slideHeight = SizeConfig.screenWidth * 0.8 * 9 / 16;
     var slideWidth = SizeConfig.screenWidth * 0.8;
     List<Widget> slides = [
       Padding(
@@ -202,7 +203,7 @@ var      slideHeight= SizeConfig.screenHeight * 0.3;
                         bottom: SizeConfig.blockSizeHorizontal * 20,
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           for (Widget slide in slides) slide
                           // Padding(
@@ -371,7 +372,7 @@ class ParagraphContentView extends StatelessWidget {
               children: [
                 Container(
                   height: slideHeight,
-                  // width: slideWidth,
+                  width: slideWidth,
                   decoration: BoxDecoration(
                     color: Colors.red.shade50, // Red background
                     borderRadius: BorderRadius.circular(16),
@@ -379,6 +380,7 @@ class ParagraphContentView extends StatelessWidget {
                   padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Row(

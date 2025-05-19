@@ -62,6 +62,16 @@ class AiResponceController extends GetxController {
       for (Widget slide in slides) {
         await pres.addWidgetSlide((size) => slide,
             pixelRatio: 6.0, context: context);
+        // await pres.addWidgetSlide(
+        //   (size) => Center(
+        //     child: AspectRatio(
+        //       aspectRatio: 16 / 9,
+        //       child: slide,
+        //     ),
+        //   ),
+        //   pixelRatio: 6.0,
+        //   context: context,
+        // );
       }
 
       final bytes = await pres.save();
