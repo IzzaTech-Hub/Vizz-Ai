@@ -399,6 +399,9 @@ class _EditableMarkdownState extends State<EditableMarkdown> {
           fontSize: 8.06, // Increased by 20%
           color: Color(0xFF333333),
         ),
+        listBulletPadding: EdgeInsets.all(0),
+        listIndent: 32,
+
         tableCellsPadding: const EdgeInsets.all(4.2), // Increased by 20%
         codeblockDecoration: BoxDecoration(
           color: const Color(0xff23241f),
@@ -406,18 +409,20 @@ class _EditableMarkdownState extends State<EditableMarkdown> {
         ),
       ),
       builders: {
-        // 'p': _InteractiveBuilder(tag: 'p', onTap: _editText),
+        'strong': _InteractiveBuilder(tag: 'strong', onTap: _editText),
 
-        // 'em': _InteractiveBuilder(tag: 'em', onTap: _editText),
-        // 'code': _InteractiveBuilder(tag: 'code', onTap: _editText),
-        // 'h1': _InteractiveBuilder(tag: 'h1', onTap: _editText),
-        // 'h2': _InteractiveBuilder(tag: 'h2', onTap: _editText),
-        // 'h3': _InteractiveBuilder(tag: 'h3', onTap: _editText),
-        // 'a': _InteractiveBuilder(tag: 'a', onTap: _editText),
-        // 'li': _InteractiveBuilder(tag: 'li', onTap: _editText),
-        // 'strong': _InteractiveBuilder(tag: 'strong', onTap: _editText),
-        // 'li': _BulletListBuilder(),
-        // 'strong': _InteractiveBuilder(
+        'p': _InteractiveBuilder(tag: 'p', onTap: _editText),
+        'em': _InteractiveBuilder(tag: 'em', onTap: _editText),
+        'code': _InteractiveBuilder(tag: 'code', onTap: _editText),
+        'h1': _InteractiveBuilder(tag: 'h1', onTap: _editText),
+        'h2': _InteractiveBuilder(tag: 'h2', onTap: _editText),
+        'h3': _InteractiveBuilder(tag: 'h3', onTap: _editText),
+        'a': _InteractiveBuilder(tag: 'a', onTap: _editText),
+        'li': _InteractiveBuilder(tag: 'li', onTap: _editText),
+        'td': InteractiveTableCellBuilder(tag: 'td', onTap: _editText),
+        'th': InteractiveTableCellBuilder(tag: 'th', onTap: _editText),
+        // 'td': _InteractiveBuilder(tag: 'td', onTap: _editText),
+        // 'th': _InteractiveBuilder(tag: 'th', onTap: _editText),
       },
     );
   }
@@ -433,8 +438,8 @@ class _InteractiveBuilder extends MarkdownElementBuilder {
   });
 
   @override
-  Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final mystyleSheet = MarkdownStyleSheet(
+  Widget visitText(md.Text text, TextStyle? preferredStyle) {
+    final styleSheet = MarkdownStyleSheet(
       p: const TextStyle(fontSize: 10.58, color: Color(0xFF333333)),
       strong: const TextStyle(
           fontSize: 10.08, fontWeight: FontWeight.bold, color: Colors.blue),
@@ -475,12 +480,69 @@ class _InteractiveBuilder extends MarkdownElementBuilder {
         border: Border(left: BorderSide(color: Color(0xFFCCCCCC), width: 4)),
       ),
     );
+    TextStyle getStyleByTag() {
+      switch (tag) {
+        case 'p':
+          return styleSheet.p!;
+        case 'strong':
+          return styleSheet.strong!;
+        case 'em':
+          return styleSheet.em!;
+        case 'code':
+          return styleSheet.code!;
+        case 'a':
+          return styleSheet.a!;
+        case 'h1':
+          return styleSheet.h1!;
+        case 'h2':
+          return styleSheet.h2!;
+        case 'h3':
+          return styleSheet.h3!;
+        case 'li':
+          // You can use styleSheet.p or create a custom style for list items
+          return styleSheet.p!;
+        case 'th':
+          return styleSheet.tableHead!;
+        case 'td':
+          return styleSheet.tableBody!;
+        default:
+          return const TextStyle(); // fallback
+      }
+    }
 
     return GestureDetector(
-      onTap: () => onTap(element.textContent, tag),
-      child: Text(
-        element.textContent,
-        style: preferredStyle ?? const TextStyle(),
+      onTap: () => onTap(text.text, tag),
+      child:
+          //  MyMarkDownBuilder().getit(text.text)
+          Text(
+        text.text,
+        style: getStyleByTag(),
+      ),
+    );
+  }
+}
+
+// class MyMarkDownBuilder extends MarkdownElementBuilder {
+//   Widget visitText(md.Text text, TextStyle? preferredStyle) {
+//     return Text('data');
+//   }
+// }
+
+class InteractiveTableCellBuilder extends MarkdownElementBuilder {
+  final void Function(String text, String tag) onTap;
+  final String tag;
+
+  InteractiveTableCellBuilder({required this.tag, required this.onTap});
+
+  @override
+  Widget visitText(md.Text text, TextStyle? preferredStyle) {
+    return TableCell(
+      child: GestureDetector(
+        onTap: () => onTap(text.text, tag),
+        child: Text(
+          text.text,
+          style: preferredStyle?.copyWith(decoration: TextDecoration.none),
+        ),
       ),
     );
   }

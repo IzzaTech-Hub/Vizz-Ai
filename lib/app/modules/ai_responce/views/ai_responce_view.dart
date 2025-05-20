@@ -32,9 +32,9 @@ class AiResponceView extends GetView<AiResponceController> {
   @override
   Widget build(BuildContext context) {
 // var      slideHeight= SizeConfig.screenHeight * 0.3;
-    var slideHeight = SizeConfig.screenWidth * 0.55;
-    // var slideHeight = SizeConfig.screenWidth * 0.8 * 9 / 16;
-    var slideWidth = SizeConfig.screenWidth * 0.8;
+    // var slideHeight = SizeConfig.screenWidth * 0.55;
+    var slideHeight = SizeConfig.screenWidth * 9 / 16;
+    var slideWidth = SizeConfig.screenWidth;
     List<Widget> slides = [
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12),
@@ -354,20 +354,20 @@ class ParagraphContentView extends StatelessWidget {
         child: Obx(() {
           final part = slidePart.value;
           return GestureDetector(
-            onTap: () async {
-              showLoading(context);
-              String pt = await generateKeyWords();
-              hideLoading(context);
-              Map<String, dynamic> ptt = jsonDecode(pt);
-              // print('pt $ptt');
+            // onTap: () async {
+            //   showLoading(context);
+            //   String pt = await generateKeyWords();
+            //   hideLoading(context);
+            //   Map<String, dynamic> ptt = jsonDecode(pt);
+            //   // print('pt $ptt');
 
-              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-              // controller.setGraph(index, ptt, part.type);
-              Get.toNamed(Routes.SHOW_GRAPH, arguments: [part.type, ptt]);
+            //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
+            //   // controller.setGraph(index, ptt, part.type);
+            //   Get.toNamed(Routes.SHOW_GRAPH, arguments: [part.type, ptt]);
 
-              // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-              // generated.value = true;
-            },
+            //   // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
+            //   // generated.value = true;
+            // },
             child: Stack(
               children: [
                 Container(
@@ -387,99 +387,100 @@ class ParagraphContentView extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Container(
-                                alignment: Alignment.topLeft,
-                                // height: SizeConfig.screenHeight * 0.3,
-                                // width: SizeConfig.screenWidth * 0.9,
-                                padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
-                                // decoration: BoxDecoration(border: Border.all()),
-                                child:
+                                  alignment: Alignment.topLeft,
+                                  // height: SizeConfig.screenHeight * 0.3,
+                                  // width: SizeConfig.screenWidth * 0.9,
+                                  padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                  // decoration: BoxDecoration(border: Border.all()),
+                                  child:
 
-                                    //----------------------------------------------------------------------------------------------------------------------
-                                    //     EditableMarkdown(
-                                    //   content: part.slideContent,
-                                    //   onUpdate: (newMarkdown) {
-                                    //     // Do something with the new markdown content (save or update in state)
-                                    //     print(newMarkdown);
-                                    //   },
-                                    // )
-                                    //--------------------------------------------------------------------------------------------------------------
-                                    MarkdownBody(
-                                  data: part.slideContent,
-                                  styleSheet: MarkdownStyleSheet(
-                                    p: const TextStyle(
-                                      fontSize: 10.58, // Increased by 20%
-                                      color: Color(0xFF333333),
-                                    ),
-                                    strong: const TextStyle(
-                                      fontSize: 10.08, // Increased by 20%
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
-                                    ),
-                                    em: const TextStyle(
-                                      fontSize: 10.08, // Increased by 20%
-                                      fontStyle: FontStyle.italic,
-                                      color: Colors.black,
-                                    ),
-                                    a: const TextStyle(
-                                      fontSize: 8.06, // Increased by 20%
-                                      color: Color(0xFF007AFF),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    code: const TextStyle(
-                                      fontSize: 8.06, // Increased by 20%
-                                      fontFamily: 'monospace',
-                                      fontStyle: FontStyle.italic,
-                                      backgroundColor:
-                                          Color.fromARGB(255, 255, 242, 217),
-                                      color: Color.fromARGB(255, 255, 95, 95),
-                                    ),
-                                    h1: TextStyle(
-                                      fontSize: 14.11, // Increased by 20%
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.red[900],
-                                    ),
-                                    h2: TextStyle(
-                                      fontSize: 13.10, // Increased by 20%
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.purple[600],
-                                    ),
-                                    h3: const TextStyle(
-                                      fontSize: 12.10, // Increased by 20%
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                    blockquoteDecoration: const BoxDecoration(
-                                      color: Color(0xFFF5F5F5),
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: Color(0xFFCCCCCC),
-                                          width: 4,
-                                        ),
-                                      ),
-                                    ),
-                                    listBullet: const TextStyle(
-                                      fontSize: 10.08, // Increased by 20%
-                                      color: Colors.black,
-                                    ),
-                                    tableHead: const TextStyle(
-                                      fontSize: 11.09, // Increased by 20%
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF333333),
-                                    ),
-                                    tableBody: const TextStyle(
-                                      fontSize: 8.06, // Increased by 20%
-                                      color: Color(0xFF333333),
-                                    ),
-                                    tableCellsPadding: const EdgeInsets.all(
-                                        4.2), // Increased by 20%
-                                    codeblockDecoration: BoxDecoration(
-                                      color: const Color(0xff23241f),
-                                      borderRadius: BorderRadius.circular(
-                                          6.72), // Increased by 20%
-                                    ),
+                                      //----------------------------------------------------------------------------------------------------------------------
+                                      EditableMarkdown(
+                                    content: part.slideContent,
+                                    onUpdate: (newMarkdown) {
+                                      // Do something with the new markdown content (save or update in state)
+                                      print(newMarkdown);
+                                    },
+                                  )
+                                  //--------------------------------------------------------------------------------------------------------------
+                                  //     MarkdownBody(
+                                  //   data: part.slideContent,
+                                  //   styleSheet: MarkdownStyleSheet(
+                                  //     p: const TextStyle(
+                                  //       fontSize: 10.58, // Increased by 20%
+                                  //       color: Color(0xFF333333),
+                                  //     ),
+                                  //     strong: const TextStyle(
+                                  //       fontSize: 10.08, // Increased by 20%
+                                  //       fontWeight: FontWeight.bold,
+                                  //       color: Colors.blue,
+                                  //     ),
+                                  //     em: const TextStyle(
+                                  //       fontSize: 10.08, // Increased by 20%
+                                  //       fontStyle: FontStyle.italic,
+                                  //       color: Colors.black,
+                                  //     ),
+                                  //     a: const TextStyle(
+                                  //       fontSize: 8.06, // Increased by 20%
+                                  //       color: Color(0xFF007AFF),
+                                  //       decoration: TextDecoration.underline,
+                                  //     ),
+                                  //     code: const TextStyle(
+                                  //       fontSize: 8.06, // Increased by 20%
+                                  //       fontFamily: 'monospace',
+                                  //       fontStyle: FontStyle.italic,
+                                  //       backgroundColor:
+                                  //           Color.fromARGB(255, 255, 242, 217),
+                                  //       color: Color.fromARGB(255, 255, 95, 95),
+                                  //     ),
+                                  //     h1: TextStyle(
+                                  //       fontSize: 14.11, // Increased by 20%
+                                  //       fontWeight: FontWeight.w900,
+                                  //       color: Colors.red[900],
+                                  //     ),
+                                  //     h2: TextStyle(
+                                  //       fontSize: 13.10, // Increased by 20%
+                                  //       fontWeight: FontWeight.bold,
+                                  //       color: Colors.purple[600],
+                                  //     ),
+                                  //     h3: const TextStyle(
+                                  //       fontSize: 12.10, // Increased by 20%
+                                  //       fontWeight: FontWeight.bold,
+                                  //       color: Colors.red,
+                                  //     ),
+                                  //     blockquoteDecoration: const BoxDecoration(
+                                  //       color: Color(0xFFF5F5F5),
+                                  //       border: Border(
+                                  //         left: BorderSide(
+                                  //           color: Color(0xFFCCCCCC),
+                                  //           width: 4,
+                                  //         ),
+                                  //       ),
+                                  //     ),
+                                  //     listBullet: const TextStyle(
+                                  //       fontSize: 10.08, // Increased by 20%
+                                  //       color: Colors.black,
+                                  //     ),
+                                  //     tableHead: const TextStyle(
+                                  //       fontSize: 11.09, // Increased by 20%
+                                  //       fontWeight: FontWeight.bold,
+                                  //       color: Color(0xFF333333),
+                                  //     ),
+                                  //     tableBody: const TextStyle(
+                                  //       fontSize: 8.06, // Increased by 20%
+                                  //       color: Color(0xFF333333),
+                                  //     ),
+                                  //     tableCellsPadding: const EdgeInsets.all(
+                                  //         4.2), // Increased by 20%
+                                  //     codeblockDecoration: BoxDecoration(
+                                  //       color: const Color(0xff23241f),
+                                  //       borderRadius: BorderRadius.circular(
+                                  //           6.72), // Increased by 20%
+                                  //     ),
+                                  //   ),
+                                  // ),
+
                                   ),
-                                ),
-                              ),
                             ),
                             part.isShowGraph.value
                                 ? SizedBox(
