@@ -32,9 +32,9 @@ class AiResponceView extends GetView<AiResponceController> {
   @override
   Widget build(BuildContext context) {
 // var      slideHeight= SizeConfig.screenHeight * 0.3;
-    var slideHeight = SizeConfig.screenWidth * 0.55;
-    // var slideHeight = SizeConfig.screenWidth * 0.8 * 9 / 16;
-    var slideWidth = SizeConfig.screenWidth * 0.8;
+    // var slideHeight = SizeConfig.screenWidth * 0.55;
+    var slideHeight = SizeConfig.screenWidth * 0.9 * 9 / 16;
+    var slideWidth = SizeConfig.screenWidth * 0.9;
     List<Widget> slides = [
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12),
