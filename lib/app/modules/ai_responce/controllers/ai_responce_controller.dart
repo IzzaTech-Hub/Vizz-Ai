@@ -13,6 +13,8 @@ import 'package:napkin/app/data/model_classes/key_points.dart';
 import 'package:napkin/app/data/model_classes/sbs.dart';
 import 'package:napkin/app/data/model_classes/slideData.dart';
 import 'package:napkin/app/data/model_classes/slidePart.dart';
+import 'package:napkin/app/data/size_config.dart';
+import 'package:napkin/app/services/rate_us_service.dart';
 import 'package:napkin/app/widgets/touch_guide_animation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -22,14 +24,11 @@ import 'package:markdown/markdown.dart' as md;
 // import 'package:google_generative_ai/google_generative_ai.dart';
 
 class AiResponceController extends GetxController {
-  //TODO: Implement AiResponceController
-  // Map<String,dynamic>? allcontentString;
-  // List<String>? contentList;
-  // List<String> slideContentList = <String>[];
   String mainTitle = "";
+  RxBool isEditable = false.obs;
   Rx<SlideData> slideData =
       SlideData(mainTitle: '', slidePart: <Rx<SlidePart>>[].obs).obs;
-  List<Widget> slides = [];
+  // List<Widget> slides = [];
   var isAllowBackButton = true.obs;
 
   List<String> typesList = [];
@@ -40,11 +39,6 @@ class AiResponceController extends GetxController {
     // allcontentString = Get.arguments[0];
     slideData.value =
         SlideData.fromMap(Get.arguments[0] as Map<String, dynamic>);
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   showGuideDialog();
-    // });
-    // showGuideDialog();
-    // parseParagraphs(allcontentString!);
   }
 
   void showGuideDialog() {
@@ -56,22 +50,43 @@ class AiResponceController extends GetxController {
   }
 
   Future<String> generatePPTX(BuildContext context, {String? mainTitle}) async {
+    // var slideHeight = 1080.0;
+    // var slideWidth = 1920.0;
+    var slideHeight = SizeConfig.screenWidth * 9 / 16;
+    var slideWidth = SizeConfig.screenWidth;
     try {
       final pres = FlutterPowerPoint();
+      List<Widget> slides = [
+        Container(
+          height: slideHeight,
+          width: slideWidth,
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+          ),
+          child: Center(
+              child: Text(
+            slideData.value.mainTitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 18,
+                color: Colors.red[900],
+                fontWeight: FontWeight.w900),
+          )),
+        ),
+      ];
 
+      for (int i = 0; i < slideData.value.slidePart.length; i++) {
+        slides.add(
+          GetSlideView(
+            index: i,
+            slideHeight: slideHeight,
+            slideWidth: slideWidth,
+          ),
+        );
+      }
       for (Widget slide in slides) {
         await pres.addWidgetSlide((size) => slide,
             pixelRatio: 6.0, context: context);
-        // await pres.addWidgetSlide(
-        //   (size) => Center(
-        //     child: AspectRatio(
-        //       aspectRatio: 16 / 9,
-        //       child: slide,
-        //     ),
-        //   ),
-        //   pixelRatio: 6.0,
-        //   context: context,
-        // );
       }
 
       final bytes = await pres.save();
@@ -114,15 +129,20 @@ class AiResponceController extends GetxController {
   }
 
   void shareFile(String filePath) async {
-    final params = ShareParams(
-      text: 'Great picture',
-      files: [XFile(filePath)],
-    );
+    try {
+      print('start sharing');
+      final params = ShareParams(
+        text: 'Great picture',
+        files: [XFile(filePath)],
+      );
 
-    final result = await SharePlus.instance.share(params);
+      final result = await SharePlus.instance.share(params);
 
-    if (result.status == ShareResultStatus.success) {
-      print('Thank you for sharing the picture!');
+      if (result.status == ShareResultStatus.success) {
+        print('Thank you for sharing the picture!');
+      }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -271,17 +291,12 @@ class AiResponceController extends GetxController {
   void increment() => count.value++;
 }
 
-// import 'package:flutter_markdown/flutter_markdown.dart';
-// import 'package:get/get.dart';
-
 class EditableMarkdown extends StatefulWidget {
-  final String content;
-  final void Function(String updatedContent) onUpdate;
+  final int index;
 
   const EditableMarkdown({
     Key? key,
-    required this.content,
-    required this.onUpdate,
+    required this.index,
   }) : super(key: key);
 
   @override
@@ -289,41 +304,47 @@ class EditableMarkdown extends StatefulWidget {
 }
 
 class _EditableMarkdownState extends State<EditableMarkdown> {
-  late String markdownData;
+  late AiResponceController controller;
 
   @override
   void initState() {
     super.initState();
-    markdownData = widget.content;
+    controller = Get.find<AiResponceController>();
   }
 
   void _editText(String original, String tag) async {
-    TextEditingController controller = TextEditingController(text: original);
+    TextEditingController textController =
+        TextEditingController(text: original);
 
     await Get.dialog(
       AlertDialog(
         title: Text('Edit $tag'),
         content: TextField(
-          controller: controller,
+          controller: textController,
           maxLines: null,
-          decoration: InputDecoration(hintText: 'Enter new text'),
+          decoration: const InputDecoration(hintText: 'Enter new text'),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              // Replace only the first occurrence
-              setState(() {
-                markdownData =
-                    markdownData.replaceFirst(original, controller.text);
-              });
-              widget.onUpdate(markdownData);
+              final updatedText = textController.text;
+              if (updatedText.trim().isNotEmpty) {
+                final currentContent = controller
+                    .slideData.value.slidePart[widget.index].value.slideContent;
+                final newContent =
+                    currentContent.replaceFirst(original, updatedText);
+
+                controller.slideData.update((val) {
+                  val?.slidePart[widget.index].value.slideContent = newContent;
+                });
+              }
               Get.back();
             },
-            child: Text('Save'),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -332,98 +353,70 @@ class _EditableMarkdownState extends State<EditableMarkdown> {
 
   @override
   Widget build(BuildContext context) {
+    final stylesheet = MarkdownStyleSheet(
+      p: const TextStyle(fontSize: 10.58, color: Color(0xFF333333)),
+      strong: const TextStyle(
+          fontSize: 10.08, fontWeight: FontWeight.bold, color: Colors.blue),
+      em: const TextStyle(
+          fontSize: 10.08, fontStyle: FontStyle.italic, color: Colors.black),
+      a: const TextStyle(
+          fontSize: 8.06,
+          color: Color(0xFF007AFF),
+          decoration: TextDecoration.underline),
+      code: const TextStyle(
+        fontSize: 8.06,
+        fontFamily: 'monospace',
+        fontStyle: FontStyle.italic,
+        backgroundColor: Color.fromARGB(255, 255, 242, 217),
+        color: Color.fromARGB(255, 255, 95, 95),
+      ),
+      h1: TextStyle(
+          fontSize: 14.11, fontWeight: FontWeight.w900, color: Colors.red[900]),
+      h2: TextStyle(
+          fontSize: 13.10,
+          fontWeight: FontWeight.bold,
+          color: Colors.purple[600]),
+      h3: const TextStyle(
+          fontSize: 12.10, fontWeight: FontWeight.bold, color: Colors.red),
+      blockquoteDecoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+        border: Border(left: BorderSide(color: Color(0xFFCCCCCC), width: 4)),
+      ),
+      listBullet: const TextStyle(fontSize: 10.08, color: Colors.black),
+      tableHead: const TextStyle(
+          fontSize: 11.09,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF333333)),
+      tableBody: const TextStyle(fontSize: 8.06, color: Color(0xFF333333)),
+      listBulletPadding: EdgeInsets.zero,
+      listIndent: 32,
+      tableCellsPadding: const EdgeInsets.all(4.2),
+      codeblockDecoration: BoxDecoration(
+        color: const Color(0xff23241f),
+        borderRadius: BorderRadius.circular(6.72),
+      ),
+    );
+
+    final builderMap = {
+      'p': _InteractiveBuilder(tag: 'p', onTap: _editText),
+      'em': _InteractiveBuilder(tag: 'em', onTap: _editText),
+      'code': _InteractiveBuilder(tag: 'code', onTap: _editText),
+      'h1': _InteractiveBuilder(tag: 'h1', onTap: _editText),
+      'h2': _InteractiveBuilder(tag: 'h2', onTap: _editText),
+      'h3': _InteractiveBuilder(tag: 'h3', onTap: _editText),
+      'a': _InteractiveBuilder(tag: 'a', onTap: _editText),
+      'li': _InteractiveBuilder(tag: 'li', onTap: _editText),
+      'strong': _InteractiveBuilder(tag: 'strong', onTap: _editText),
+    };
+
+    final markdownData =
+        controller.slideData.value.slidePart[widget.index].value.slideContent;
+
     return MarkdownBody(
       data: markdownData,
       selectable: true,
-      styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(
-          fontSize: 10.58, // Increased by 20%
-          color: Color(0xFF333333),
-        ),
-        strong: const TextStyle(
-          fontSize: 10.08, // Increased by 20%
-          fontWeight: FontWeight.bold,
-          color: Colors.blue,
-        ),
-        em: const TextStyle(
-          fontSize: 10.08, // Increased by 20%
-          fontStyle: FontStyle.italic,
-          color: Colors.black,
-        ),
-        a: const TextStyle(
-          fontSize: 8.06, // Increased by 20%
-          color: Color(0xFF007AFF),
-          decoration: TextDecoration.underline,
-        ),
-        code: const TextStyle(
-          fontSize: 8.06, // Increased by 20%
-          fontFamily: 'monospace',
-          fontStyle: FontStyle.italic,
-          backgroundColor: Color.fromARGB(255, 255, 242, 217),
-          color: Color.fromARGB(255, 255, 95, 95),
-        ),
-        h1: TextStyle(
-          fontSize: 14.11, // Increased by 20%
-          fontWeight: FontWeight.w900,
-          color: Colors.red[900],
-        ),
-        h2: TextStyle(
-          fontSize: 13.10, // Increased by 20%
-          fontWeight: FontWeight.bold,
-          color: Colors.purple[600],
-        ),
-        h3: const TextStyle(
-          fontSize: 12.10, // Increased by 20%
-          fontWeight: FontWeight.bold,
-          color: Colors.red,
-        ),
-        blockquoteDecoration: const BoxDecoration(
-          color: Color(0xFFF5F5F5),
-          border: Border(
-            left: BorderSide(
-              color: Color(0xFFCCCCCC),
-              width: 4,
-            ),
-          ),
-        ),
-        // listBullet: const TextStyle(
-        //   fontSize: 10.08, // Increased by 20%
-        //   color: Colors.black,
-        // ),
-        tableHead: const TextStyle(
-          fontSize: 11.09, // Increased by 20%
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF333333),
-        ),
-        tableBody: const TextStyle(
-          fontSize: 8.06, // Increased by 20%
-          color: Color(0xFF333333),
-        ),
-        listBulletPadding: EdgeInsets.all(0),
-        listIndent: 32,
-
-        tableCellsPadding: const EdgeInsets.all(4.2), // Increased by 20%
-        codeblockDecoration: BoxDecoration(
-          color: const Color(0xff23241f),
-          borderRadius: BorderRadius.circular(6.72), // Increased by 20%
-        ),
-      ),
-      builders: {
-        'strong': _InteractiveBuilder(tag: 'strong', onTap: _editText),
-
-        'p': _InteractiveBuilder(tag: 'p', onTap: _editText),
-        'em': _InteractiveBuilder(tag: 'em', onTap: _editText),
-        'code': _InteractiveBuilder(tag: 'code', onTap: _editText),
-        'h1': _InteractiveBuilder(tag: 'h1', onTap: _editText),
-        'h2': _InteractiveBuilder(tag: 'h2', onTap: _editText),
-        'h3': _InteractiveBuilder(tag: 'h3', onTap: _editText),
-        'a': _InteractiveBuilder(tag: 'a', onTap: _editText),
-        'li': _InteractiveBuilder(tag: 'li', onTap: _editText),
-        'td': InteractiveTableCellBuilder(tag: 'td', onTap: _editText),
-        'th': InteractiveTableCellBuilder(tag: 'th', onTap: _editText),
-        // 'td': _InteractiveBuilder(tag: 'td', onTap: _editText),
-        // 'th': _InteractiveBuilder(tag: 'th', onTap: _editText),
-      },
+      styleSheet: stylesheet,
+      builders: builderMap,
     );
   }
 }
@@ -514,36 +507,137 @@ class _InteractiveBuilder extends MarkdownElementBuilder {
       onTap: () => onTap(text.text, tag),
       child:
           //  MyMarkDownBuilder().getit(text.text)
-          Text(
-        text.text,
-        style: getStyleByTag(),
+          Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Colors.grey, // You can change this color
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          text.text,
+          style: getStyleByTag(),
+        ),
       ),
     );
   }
 }
 
-// class MyMarkDownBuilder extends MarkdownElementBuilder {
-//   Widget visitText(md.Text text, TextStyle? preferredStyle) {
-//     return Text('data');
-//   }
-// }
-
-class InteractiveTableCellBuilder extends MarkdownElementBuilder {
-  final void Function(String text, String tag) onTap;
-  final String tag;
-
-  InteractiveTableCellBuilder({required this.tag, required this.onTap});
+class simpleMarkDown extends StatelessWidget {
+  int index;
+  simpleMarkDown({required this.index, super.key});
 
   @override
-  Widget visitText(md.Text text, TextStyle? preferredStyle) {
-    return TableCell(
-      child: GestureDetector(
-        onTap: () => onTap(text.text, tag),
-        child: Text(
-          text.text,
-          style: preferredStyle?.copyWith(decoration: TextDecoration.none),
+  Widget build(BuildContext context) {
+    AiResponceController controller = Get.find();
+
+    String markdownData =
+        controller.slideData.value.slidePart[index].value.slideContent;
+    final stylesheet = MarkdownStyleSheet(
+      p: const TextStyle(
+        fontSize: 10.58, // Increased by 20%
+        color: Color(0xFF333333),
+      ),
+      strong: const TextStyle(
+        fontSize: 10.08, // Increased by 20%
+        fontWeight: FontWeight.bold,
+        color: Colors.blue,
+      ),
+      em: const TextStyle(
+        fontSize: 10.08, // Increased by 20%
+        fontStyle: FontStyle.italic,
+        color: Colors.black,
+      ),
+      a: const TextStyle(
+        fontSize: 8.06, // Increased by 20%
+        color: Color(0xFF007AFF),
+        decoration: TextDecoration.underline,
+      ),
+      code: const TextStyle(
+        fontSize: 8.06, // Increased by 20%
+        fontFamily: 'monospace',
+        fontStyle: FontStyle.italic,
+        backgroundColor: Color.fromARGB(255, 255, 242, 217),
+        color: Color.fromARGB(255, 255, 95, 95),
+      ),
+      h1: TextStyle(
+        fontSize: 14.11, // Increased by 20%
+        fontWeight: FontWeight.w900,
+        color: Colors.red[900],
+      ),
+      h2: TextStyle(
+        fontSize: 13.10, // Increased by 20%
+        fontWeight: FontWeight.bold,
+        color: Colors.purple[600],
+      ),
+      h3: const TextStyle(
+        fontSize: 12.10, // Increased by 20%
+        fontWeight: FontWeight.bold,
+        color: Colors.red,
+      ),
+      blockquoteDecoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+        border: Border(
+          left: BorderSide(
+            color: Color(0xFFCCCCCC),
+            width: 4,
+          ),
         ),
       ),
+      listBullet: const TextStyle(
+        fontSize: 10.08, // Increased by 20%
+        color: Colors.black,
+      ),
+      tableHead: const TextStyle(
+        fontSize: 11.09, // Increased by 20%
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF333333),
+      ),
+      tableBody: const TextStyle(
+        fontSize: 8.06, // Increased by 20%
+        color: Color(0xFF333333),
+      ),
+      listBulletPadding: EdgeInsets.all(0),
+      listIndent: 32,
+
+      tableCellsPadding: const EdgeInsets.all(4.2), // Increased by 20%
+      codeblockDecoration: BoxDecoration(
+        color: const Color(0xff23241f),
+        borderRadius: BorderRadius.circular(6.72), // Increased by 20%
+      ),
+    );
+
+    return MarkdownBody(
+      data: markdownData,
+      selectable: true,
+      styleSheet: stylesheet,
+    );
+  }
+}
+
+class GetSlideView extends StatelessWidget {
+  int index;
+  double slideHeight;
+  double slideWidth;
+
+  GetSlideView(
+      {super.key,
+      required this.index,
+      required this.slideHeight,
+      required this.slideWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: slideHeight,
+      width: slideWidth,
+      decoration: BoxDecoration(
+        color: Colors.red.shade50, // Red background
+        // borderRadius: BorderRadius.circular(16),
+      ),
+      padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
+      child: simpleMarkDown(index: index),
     );
   }
 }

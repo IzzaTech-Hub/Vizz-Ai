@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -8,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:napkin/app/data/model_classes/slideData.dart';
 import 'package:napkin/app/data/size_config.dart';
 import 'package:napkin/app/routes/app_pages.dart';
+import 'package:napkin/app/services/rate_us_service.dart';
 import 'package:rive/rive.dart';
 
 import '../controllers/home_controller.dart';
@@ -18,98 +20,7 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     SizeConfig().init(context);
-    // return Scaffold(
-    //   body: Container(
-    //     decoration: BoxDecoration(
-    //       gradient: LinearGradient(
-    //         colors: [
-    //           Colors.redAccent.shade700, // redAccent.shade700
-    //           Colors.redAccent.shade400, // redAccent.shade700
-    //           // Color(0xFFFF5252), // redAccent.shade400
-    //         ],
-    //         begin: Alignment.topLeft,
-    //         end: Alignment.bottomRight,
-    //       ),
-    //     ),
-    //     padding: const EdgeInsets.symmetric(horizontal: 24.0),
-    //     child: Center(
-    //       child: Column(
-    //         mainAxisSize: MainAxisSize.min,
-    //         children: [
-    //           const FaIcon(
-    //             FontAwesomeIcons.bookOpen,
-    //             color: Colors.white,
-    //             size: 64,
-    //           ),
-    //           const SizedBox(height: 24),
-    //           TextField(
-    //             controller: _controller,
-    //             style: GoogleFonts.poppins(
-    //               color: Colors.white,
-    //               fontSize: 18,
-    //             ),
-    //             cursorColor: Colors.white,
-    //             autofocus: true,
-    //             decoration: InputDecoration(
-    //               hintText: "Enter a topic...",
-    //               hintStyle: GoogleFonts.poppins(
-    //                 color: Colors.white70,
-    //                 fontSize: 16,
-    //               ),
-    //               filled: true,
-    //               fillColor: Colors.white.withOpacity(0.1),
-    //               border: OutlineInputBorder(
-    //                 borderRadius: BorderRadius.circular(16),
-    //                 borderSide: BorderSide.none,
-    //               ),
-    //               contentPadding: const EdgeInsets.symmetric(
-    //                 vertical: 20,
-    //                 horizontal: 16,
-    //               ),
-    //             ),
-    //           ),
-    //           const SizedBox(height: 24),
-    //           SizedBox(
-    //             width: double.infinity,
-    //             child: ElevatedButton(
-    //               onPressed: () {
-    //                 final topic = _controller.text.trim();
-    //                 if (topic.isNotEmpty) {
-    //                   // Navigation or logic here
-    //                   ScaffoldMessenger.of(context).showSnackBar(
-    //                     SnackBar(
-    //                       content: Text("Continuing with topic: $topic"),
-    //                     ),
-    //                   );
-    //                 } else {
-    //                   ScaffoldMessenger.of(context).showSnackBar(
-    //                     const SnackBar(
-    //                       content: Text("Please enter a topic!"),
-    //                     ),
-    //                   );
-    //                 }
-    //               },
-    //               style: ElevatedButton.styleFrom(
-    //                 backgroundColor: Colors.white.withOpacity(0.15),
-    //                 foregroundColor: Colors.white,
-    //                 elevation: 0,
-    //                 shape: RoundedRectangleBorder(
-    //                   borderRadius: BorderRadius.circular(16),
-    //                 ),
-    //                 padding: const EdgeInsets.symmetric(vertical: 18),
-    //                 textStyle: GoogleFonts.poppins(
-    //                   fontSize: 18,
-    //                   fontWeight: FontWeight.w600,
-    //                 ),
-    //               ),
-    //               child: const Text("Continue"),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -179,65 +90,103 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Obx(() => controller.isLoading.value
-                            ? const CircularProgressIndicator()
-                            : GestureDetector(
-                                onTap: () async {
-                                  controller.showLoading(context);
-                                  String inputText =
-                                      controller.textEditingController.text;
-                                  String response = await controller
-                                      .generateContent(inputText);
-                                  Map<String, dynamic> slideDataMap =
-                                      SlideData.fromMap(jsonDecode(response)).toMap();
-                                  controller.hideLoading(context);
-                                  Get.toNamed(Routes.AI_RESPONCE,
-                                      arguments: [slideDataMap]);
-                                },
-                                child: Container(
-                                  height: SizeConfig.blockSizeVertical * 6,
-                                  width: SizeConfig.blockSizeHorizontal * 45,
-                                  decoration: BoxDecoration(
-                                      color: Colors.redAccent,
-                                      borderRadius: BorderRadius.circular(
-                                          SizeConfig.blockSizeHorizontal * 2)),
-                                  child: Center(
-                                    child: Text(
-                                      "Generate",
-                                      style: TextStyle(
-                                          fontSize:
-                                              SizeConfig.blockSizeHorizontal *
-                                                  4,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white),
-                                    ),
+                    Obx(
+                      () => controller.isLoading.value
+                          ? const CircularProgressIndicator()
+                          : GestureDetector(
+                              onTap: () async {
+                                if (controller.textEditingController.text ==
+                                    '') {
+                                  Get.snackbar('No Topic Found',
+                                      'Please Enter a Topic to Generate Presentation and try again');
+                                  return;
+                                }
+                                try {
+                                  final connectivity =
+                                      await Connectivity().checkConnectivity();
+                                  print(connectivity[0] ==
+                                      ConnectivityResult.none);
+                                  if (connectivity[0] ==
+                                      ConnectivityResult.none) {
+                                    Get.snackbar('No Internet Connection',
+                                        'Please check your internet and try again');
+                                    return;
+                                  }
+                                } catch (e) {
+                                  print('Connectivity error: $e');
+                                  return;
+                                }
+                                // print('object');
+                                controller.showLoading(context);
+                                String inputText =
+                                    controller.textEditingController.text;
+                                String response =
+                                    await controller.generateContent(inputText);
+                                Map<String, dynamic> slideDataMap =
+                                    SlideData.fromMap(jsonDecode(response))
+                                        .toMap();
+                                controller.hideLoading(context);
+
+                                Get.toNamed(Routes.AI_RESPONCE,
+                                    arguments: [slideDataMap]);
+                              },
+                              child: Container(
+                                height: SizeConfig.blockSizeVertical * 6,
+                                width: SizeConfig.blockSizeHorizontal * 45,
+                                decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(
+                                        SizeConfig.blockSizeHorizontal * 2)),
+                                child: Center(
+                                  child: Text(
+                                    "Generate",
+                                    style: TextStyle(
+                                        fontSize:
+                                            SizeConfig.blockSizeHorizontal * 4,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white),
                                   ),
                                 ),
-                              )
-                        // : ElevatedButton(
-                        //     style: ElevatedButton.styleFrom(
-                        //       backgroundColor: const Color(0xFF6E56CF),
-                        //       minimumSize: const Size(double.infinity, 48),
-                        //       shape: RoundedRectangleBorder(
-                        //         borderRadius: BorderRadius.circular(8),
-                        //       ),
-                        //     ),
-                        //     onPressed: controller.generateVisualization,
-                        //     child: const Text(
-                        //       'Generate',
-                        //       style: TextStyle(
-                        //         fontSize: 16,
-                        //         fontWeight: FontWeight.w500,
-                        //       ),
-                        //     ),
-                        //   ),
-                        ),
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ),
 
               // Example Prompts
               const SizedBox(height: 32),
+              // GestureDetector(
+              //   onTap: () {
+              //     RateUsService.rateus();
+              //   },
+              //   child: Container(
+              //     height: 100,
+              //     width: 100,
+              //     color: Colors.black,
+              //     child: Text(
+              //       'rate',
+              //       style: TextStyle(color: Colors.white),
+              //     ),
+              //   ),
+              // ),
+              // ElevatedButton(
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: const Color(0xFF6E56CF),
+              //     minimumSize: const Size(double.infinity, 48),
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(8),
+              //     ),
+              //   ),
+              //   onPressed: ,
+              //   child: const Text(
+              //     'rate us',
+              //     style: TextStyle(
+              //       fontSize: 16,
+              //       fontWeight: FontWeight.w500,
+              //     ),
+              //   ),
+              // ),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(

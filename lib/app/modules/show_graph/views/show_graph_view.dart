@@ -12,6 +12,7 @@ import 'package:napkin/app/data/size_config.dart';
 // import 'package:napkin/app/data/view_handler/keypoints_views.dart';
 import 'package:napkin/app/data/view_handler/view_handler.dart';
 import 'package:napkin/app/services/feedback_service.dart';
+import 'package:napkin/app/services/rate_us_service.dart';
 import 'package:napkin/app/widgets/start_feedback_widget.dart';
 
 import '../controllers/show_graph_controller.dart';
@@ -20,6 +21,10 @@ class ShowGraphView extends GetView<ShowGraphController> {
   const ShowGraphView({super.key});
   @override
   Widget build(BuildContext context) {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+  await Future.delayed(Duration(milliseconds: 1000));
+  RateUsService.rateus();
+});
     // return HoneycombPage();
     return Scaffold(
         // backgroundColor: Colors.black,

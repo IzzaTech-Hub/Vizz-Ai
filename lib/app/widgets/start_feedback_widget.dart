@@ -24,7 +24,7 @@ class StarFeedbackWidget extends StatefulWidget {
 class _StarFeedbackWidgetState extends State<StarFeedbackWidget> {
   bool isStarred = false; // Track if feedback is given
   String? selectedFeedback; // Selected feedback option
-  String? feedbackType = "Positive"; // Default feedback type
+  String? feedbackType = "Negative"; // Default feedback type
   TextEditingController customFeedbackController = TextEditingController();
 
   final Map<String, List<String>> feedbackOptions = {
@@ -37,11 +37,14 @@ class _StarFeedbackWidgetState extends State<StarFeedbackWidget> {
       "Other",
     ],
     "Negative": [
-      "Difficult to understand",
-      "Too complex",
+      // "Difficult to understand",
+      "Confusing Too complex",
       "Not visually appealing",
-      "Lacks information",
-      "Not well structured",
+      // "Lacks information",
+      // "Not well structured",
+      "Inappropriate or harmful content",
+      "Sexual or adult content",
+      "Bug or technical issue",
       "Other",
     ],
   };
@@ -221,7 +224,7 @@ class _StarFeedbackWidgetState extends State<StarFeedbackWidget> {
               child: Icon(
                 icon,
                 color: Colors.white,
-                size: SizeConfig.blockSizeHorizontal * 6,
+                size: size,
               ),
             ),
           ),
