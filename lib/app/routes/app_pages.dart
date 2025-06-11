@@ -8,6 +8,8 @@ import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/show_graph/bindings/show_graph_binding.dart';
 import '../modules/show_graph/views/show_graph_view.dart';
+import '../modules/outline/bindings/outline_binding.dart';
+import '../modules/outline/views/outline_view.dart';
 
 part 'app_routes.dart';
 
@@ -17,9 +19,9 @@ class AppPages {
   static const INITIAL = Routes.SPLASHVIEW;
 
   static final routes = [
-     GetPage(
+    GetPage(
       name: _Paths.SPLASHVIEW,
-      page: () =>  SplashScreen(),
+      page: () => SplashScreen(),
       binding: SplashBinding(),
     ),
     GetPage(
@@ -28,8 +30,15 @@ class AppPages {
       binding: HomeBinding(),
     ),
     GetPage(
+      name: _Paths.OUTLINE,
+      page: () => OutlineView(),
+      binding: OutlineBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: const Duration(milliseconds: 250),
+    ),
+    GetPage(
       name: _Paths.AI_RESPONCE,
-      page: () => const AiResponceView(),
+      page: () => AiResponceView(),
       binding: AiResponceBinding(),
     ),
     GetPage(

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.5.3
@@ -37,7 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   get: ^4.7.2
   google_generative_ai: ^0.4.6
-  flutter_markdown: ^0.7.6+2
+  flutter_markdown: ^0.6.18
   markdown: ^7.3.0
   flutter_svg: ^2.0.17
   syncfusion_flutter_charts: ^27.2.5
@@ -53,7 +53,10 @@ dependencies:
   shared_preferences: ^2.5.3
   slide_rating_dialog: ^1.0.4
   in_app_review: ^2.0.9
-
+  shimmer: ^3.0.0
+  image_picker: ^1.0.7
+  google_mobile_ads: ^5.0.0
+  flutter_easyloading: ^3.0.5
 
   flutter_pptx:
     git:
@@ -61,6 +64,11 @@ dependencies:
       path: packages/flutter_pptx
       ref: main
   share_plus: ^11.0.0
+  carousel_slider: ^5.0.0
+  scroll_loop_auto_scroll: ^0.0.5
+  url_launcher: ^6.3.1
+  path_provider: ^2.1.5
+  http: ^1.4.0
 
 dev_dependencies:
   flutter_test:

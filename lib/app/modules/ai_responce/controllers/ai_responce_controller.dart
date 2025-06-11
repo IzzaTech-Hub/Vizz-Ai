@@ -4,8 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-// import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/model_classes/comparison.dart';
 import 'package:napkin/app/data/model_classes/graph_class.dart';
 import 'package:napkin/app/data/model_classes/hierarchy.dart';
@@ -13,15 +14,19 @@ import 'package:napkin/app/data/model_classes/key_points.dart';
 import 'package:napkin/app/data/model_classes/sbs.dart';
 import 'package:napkin/app/data/model_classes/slideData.dart';
 import 'package:napkin/app/data/model_classes/slidePart.dart';
+import 'package:napkin/app/data/models/presentation_outline.dart';
+import 'package:napkin/app/data/models/slide_content_new.dart';
 import 'package:napkin/app/data/size_config.dart';
+import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
 import 'package:napkin/app/services/rate_us_service.dart';
 import 'package:napkin/app/widgets/touch_guide_animation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:markdown/markdown.dart' as md;
-// import 'package:markdown/markdown.dart';
-
-// import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:napkin/app/data/gemini_ai/ai_schema.dart';
+import 'package:napkin/app/data/gemini_prompts.dart';
+import 'package:napkin/app/data/rc_variables.dart';
+import 'package:napkin/app/services/gemini_image_service.dart';
 
 class AiResponceController extends GetxController {
   String mainTitle = "";
@@ -33,12 +38,19 @@ class AiResponceController extends GetxController {
 
   List<String> typesList = [];
   final count = 0.obs;
+  final isLoading = true.obs;
+  final Rx<PresentationContent?> presentationContent =
+      Rx<PresentationContent?>(null);
+  final RxMap<int, File> selectedImages = RxMap<int, File>();
+  final RxMap<int, bool> imageGenerating = RxMap<int, bool>();
+
   @override
   void onInit() async {
     super.onInit();
     // allcontentString = Get.arguments[0];
-    slideData.value =
-        SlideData.fromMap(Get.arguments[0] as Map<String, dynamic>);
+    if (Get.arguments != null) {
+      generateDetailedContent(Get.arguments as PresentationOutline);
+    }
   }
 
   void showGuideDialog() {
@@ -50,12 +62,16 @@ class AiResponceController extends GetxController {
   }
 
   Future<String> generatePPTX(BuildContext context, {String? mainTitle}) async {
-    // var slideHeight = 1080.0;
-    // var slideWidth = 1920.0;
     var slideHeight = SizeConfig.screenWidth * 9 / 16;
     var slideWidth = SizeConfig.screenWidth;
     try {
+      if (presentationContent.value == null) {
+        throw Exception("No presentation content available.");
+      }
+
       final pres = FlutterPowerPoint();
+
+      // Title slide
       List<Widget> slides = [
         Container(
           height: slideHeight,
@@ -64,26 +80,115 @@ class AiResponceController extends GetxController {
             color: Colors.red.shade50,
           ),
           child: Center(
-              child: Text(
-            slideData.value.mainTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 18,
-                color: Colors.red[900],
-                fontWeight: FontWeight.w900),
-          )),
+            child: Text(
+              presentationContent.value!.title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.red[900],
+                  fontWeight: FontWeight.w900),
+            ),
+          ),
         ),
       ];
 
-      for (int i = 0; i < slideData.value.slidePart.length; i++) {
+      // Content slides
+      for (int i = 1; i < presentationContent.value!.slides.length; i++) {
+        final slide = presentationContent.value!.slides[i];
+        final hasImage =
+            selectedImages[i] != null && selectedImages[i]!.existsSync();
+
         slides.add(
-          GetSlideView(
-            index: i,
-            slideHeight: slideHeight,
-            slideWidth: slideWidth,
+          Container(
+            height: slideHeight,
+            width: slideWidth,
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+            ),
+            padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  slide.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[900],
+                  ),
+                ),
+                SizedBox(height: 12),
+                // Paragraphs with markdown
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Text content
+                      Expanded(
+                        flex: hasImage ? 7 : 10,
+                        child: MarkdownBody(
+                          data: slide.paragraphs.join('\n\n'),
+                          styleSheet: MarkdownStyleSheet(
+                            p: TextStyle(
+                              fontSize: 10,
+                              color: Colors.black87,
+                              height: 1.3,
+                            ),
+                            strong: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[900],
+                            ),
+                            em: TextStyle(
+                              fontSize: 10,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.purple[900],
+                            ),
+                            h1: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.red[900],
+                            ),
+                            h2: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple[900],
+                            ),
+                            listBullet: TextStyle(
+                              fontSize: 10,
+                              color: Colors.black87,
+                            ),
+                            listIndent: 16.0,
+                          ),
+                        ),
+                      ),
+                      // Image if available
+                      if (hasImage) ...[
+                        SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              image: DecorationImage(
+                                image: FileImage(selectedImages[i]!),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
+
+      // Add all slides to the presentation
       for (Widget slide in slides) {
         await pres.addWidgetSlide((size) => slide,
             pixelRatio: 6.0, context: context);
@@ -96,14 +201,13 @@ class AiResponceController extends GetxController {
 
       Directory appDocDir = await getApplicationDocumentsDirectory();
 
-      /// Sanitize the title to prevent double dots and invalid characters.
-      String safeTitle = (slideData.value.mainTitle?.trim().isNotEmpty ?? false)
-          ? slideData.value.mainTitle!
+      // Sanitize the title
+      String safeTitle = (presentationContent.value!.title.trim().isNotEmpty)
+          ? presentationContent.value!.title
               .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
               .replaceAll(RegExp(r'\.+'), '.')
           : 'presentation';
 
-      /// Ensure the filename ends with `.pptx`
       if (!safeTitle.endsWith('.pptx')) {
         safeTitle = '$safeTitle.pptx';
       }
@@ -119,7 +223,7 @@ class AiResponceController extends GetxController {
       return filePath;
     } catch (e) {
       print('Error generating PPTX: $e');
-      Get.snackbar("Error", "Failed to save the PowerPoint file.");
+      Get.snackbar("Error", "Failed to save the PowerPoint file: $e");
       return '';
     }
   }
@@ -289,6 +393,177 @@ class AiResponceController extends GetxController {
   }
 
   void increment() => count.value++;
+
+  void handleImageSelected(int slideIndex, File image) {
+    selectedImages[slideIndex] = image;
+  }
+
+  Future<void> generateImage(int slideIndex) async {
+    bool isAdShown = await Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            Icon(FontAwesomeIcons.gift, color: Colors.orange), // Ad icon
+            SizedBox(width: 10),
+            Text("Generate Image"),
+          ],
+        ),
+        // content: Text("To generate the image, you'll watch a short reward ad."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back(result: false);
+              // return false;
+            }, // Close dialog
+            child: Text("Cancel", style: TextStyle(color: Colors.black)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Get.back(result: true); // Close dialog before showing ad
+
+              AdMobAdsProvider.instance.ShowRewardedAd(() {
+                // Your logic after ad is completed
+                print("Ad finished. Proceed with image generation.");
+              });
+            },
+            icon: Icon(Icons.play_circle_fill),
+            label: Text(
+              "Generate",
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+    if (!isAdShown) return;
+    // Get.dialog(Column(
+    //   children: [
+    //     Text("Generat Image"),
+    //   ]
+    // ));
+    // AdMobAdsProvider.instance.showRewardedInterGame(() {});
+    try {
+      if (presentationContent.value == null) return;
+
+      final slide = presentationContent.value!.slides[slideIndex];
+      if (slide.imagePrompt == null) {
+        Get.snackbar(
+          'Error',
+          'No image prompt available for this slide',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      imageGenerating[slideIndex] = true;
+
+      // Remove existing image for this slide if any
+      if (selectedImages.containsKey(slideIndex)) {
+        final existingFile = selectedImages[slideIndex];
+        if (existingFile != null && await existingFile.exists()) {
+          await existingFile.delete();
+        }
+        selectedImages.remove(slideIndex);
+      }
+
+      final geminiImageService = GeminiImageService();
+      geminiImageService.initilize(RcVariables.apikey);
+
+      final response = await geminiImageService.generateGeminiImage(
+        prompt: slide.imagePrompt!,
+      );
+
+      if (!response.success) {
+        throw response.error ?? 'Failed to generate image';
+      }
+
+      if (response.imageBytes == null) {
+        throw 'No image data received';
+      }
+
+      // Create a temporary file to store the image
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(
+          '${tempDir.path}/slide_${slideIndex}_image_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await tempFile.writeAsBytes(response.imageBytes!);
+
+      // Update the selected image
+      selectedImages[slideIndex] = tempFile;
+
+      Get.snackbar(
+        'Success',
+        'Image generated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      print('Error generating image: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to generate image: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      imageGenerating[slideIndex] = false;
+    }
+  }
+
+  Future<void> generateDetailedContent(PresentationOutline outline) async {
+    try {
+      isLoading.value = true;
+
+      // Clear existing images and generation states
+      selectedImages.clear();
+      imageGenerating.clear();
+
+      // Convert outline to JSON string for the prompt
+      final outlineJson = jsonEncode(outline.toJson());
+
+      // Initialize Gemini model
+      final model = GenerativeModel(
+        model: RcVariables.geminiAiModel,
+        apiKey: RcVariables.apikey,
+        generationConfig: GenerationConfig(
+          temperature: 0.9,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          responseSchema: AiSchema.presentationContentSchema,
+        ),
+      );
+
+      // Generate detailed content
+      final prompt = GeminiPrompts.generateDetailedContentPrompt(outlineJson);
+      final response = await model.generateContent([Content.text(prompt)]);
+
+      if (response.text == null) {
+        throw 'No response received from AI';
+      }
+
+      // Clean and parse the response
+      String cleanJson = response.text!.trim();
+      cleanJson = cleanJson.replaceAll('```json', '').replaceAll('```', '');
+
+      final Map<String, dynamic> jsonResponse = jsonDecode(cleanJson);
+      final content = PresentationContent.fromJson(jsonResponse);
+
+      presentationContent.value = content;
+    } catch (e) {
+      print('Error generating detailed content: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to generate detailed content: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }
 
 class EditableMarkdown extends StatefulWidget {

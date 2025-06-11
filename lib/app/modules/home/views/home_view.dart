@@ -1,253 +1,352 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:napkin/app/data/model_classes/slideData.dart';
+import 'package:get/get_connect/http/src/utils/utils.dart';
+import 'package:napkin/app/data/app_images.dart';
 import 'package:napkin/app/data/size_config.dart';
-import 'package:napkin/app/routes/app_pages.dart';
-import 'package:napkin/app/services/rate_us_service.dart';
-import 'package:rive/rive.dart';
-
+import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
+import 'package:napkin/app/services/ads/adshandler.dart';
+import 'package:napkin/app/utills/app_colors.dart';
+import 'package:scroll_loop_auto_scroll/scroll_loop_auto_scroll.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   HomeView({super.key});
+  void _shareApp(BuildContext context) async {
+    try {
+      // Load image from assets
+      final byteData = await rootBundle.load('assets/images/main_icon.png');
+
+      // Get temp directory
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/thumbnail.jpg');
+
+      // Write image to temp file
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+
+      // Share it with text
+      // [XFile(file.path)];
+
+      SharePlus.instance.share(
+        ShareParams(
+            text: '''
+🚀 *Boost Your Productivity Instantly!*
+
+Discover *Vizz AI* - Make Professional Presentation in secondes. Vizz Ai Your smart assistant for taking lightning-fast notes, organizing thoughts, and staying ahead. 🧠✨
+
+✅ AI-powered summaries  
+✅ Clean & easy interface  
+✅ Totally Free of cost
+
+📲 Download now on Google Play:
+https://play.google.com/store/apps/details?id=com.visualizerai.quicknotesai
+''',
+            title: 'Vizz Ai:One Click Presentation Maker',
+            files: [XFile(file.path)]),
+      );
+    } catch (e) {
+      print("Error sharing image: $e");
+    }
+  }
+
+  void _sendFeedback(BuildContext context) async {
+    final Uri emailLaunchUri = Uri.parse(
+        'https://play.google.com/store/apps/details?id=com.visualizerai.quicknotesai');
+
+    if (await canLaunchUrl(emailLaunchUri)) {
+      await launchUrl(emailLaunchUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open email app')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     SizeConfig().init(context);
-
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            // mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Header
-              verticalSpace(SizeConfig.blockSizeVertical * 8),
-              Text(
-                'AI Visualizer',
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.redAccent.shade700
-                    // color: Colors.black
-                    ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: SvgPicture.asset(
+                AppImagesSVG.bgBottom, // Replace with your SVG asset path
+                fit: BoxFit.cover,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Visualize your ideas in seconds',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.redAccent.shade400,
-                  // color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Input Box
-              Container(
-                margin: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.blockSizeHorizontal * 5),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(24),
+            ),
+            Positioned.fill(
+              child: SingleChildScrollView(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    TextField(
-                      // onChanged: controller.setPrompt,
-                      controller: controller.textEditingController,
-
-                      decoration: InputDecoration(
-                        hintText: 'What you want to visualize...',
-                        hintStyle: TextStyle(
-                            fontSize: SizeConfig.blockSizeHorizontal * 3.5,
-                            color: Colors.grey),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE9ECEF)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: Colors.redAccent.shade700),
-                        ),
-                        contentPadding: const EdgeInsets.all(16),
-                      ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 16),
+                    Text(
+                      'AI Visualizer',
+                      style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black
+                          // color: Colors.black
+                          ),
                     ),
-                    const SizedBox(height: 16),
-                    Obx(
-                      () => controller.isLoading.value
-                          ? const CircularProgressIndicator()
-                          : GestureDetector(
-                              onTap: () async {
-                                if (controller.textEditingController.text ==
-                                    '') {
-                                  Get.snackbar('No Topic Found',
-                                      'Please Enter a Topic to Generate Presentation and try again');
-                                  return;
-                                }
-                                try {
-                                  final connectivity =
-                                      await Connectivity().checkConnectivity();
-                                  print(connectivity[0] ==
-                                      ConnectivityResult.none);
-                                  if (connectivity[0] ==
-                                      ConnectivityResult.none) {
-                                    Get.snackbar('No Internet Connection',
-                                        'Please check your internet and try again');
-                                    return;
-                                  }
-                                } catch (e) {
-                                  print('Connectivity error: $e');
-                                  return;
-                                }
-                                // print('object');
-                                controller.showLoading(context);
-                                String inputText =
-                                    controller.textEditingController.text;
-                                String response =
-                                    await controller.generateContent(inputText);
-                                Map<String, dynamic> slideDataMap =
-                                    SlideData.fromMap(jsonDecode(response))
-                                        .toMap();
-                                controller.hideLoading(context);
-
-                                Get.toNamed(Routes.AI_RESPONCE,
-                                    arguments: [slideDataMap]);
-                              },
-                              child: Container(
-                                height: SizeConfig.blockSizeVertical * 6,
-                                width: SizeConfig.blockSizeHorizontal * 45,
-                                decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    borderRadius: BorderRadius.circular(
-                                        SizeConfig.blockSizeHorizontal * 2)),
-                                child: Center(
-                                  child: Text(
-                                    "Generate",
-                                    style: TextStyle(
-                                        fontSize:
-                                            SizeConfig.blockSizeHorizontal * 4,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white),
+                    verticalSpace(SizeConfig.blockSizeVertical * 2),
+                    Text(
+                      'Visualize your ideas in seconds',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black54,
+                          letterSpacing: 1.2),
+                    ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          // border: Border.all(color: Colors.black26),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black38,
+                                offset: Offset(2, 3),
+                                blurRadius: 1.5)
+                          ],
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: controller.textEditingController,
+                                decoration: InputDecoration(
+                                  hintText: 'What you want to visualize...',
+                                  hintStyle: TextStyle(color: Colors.black38),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0),
+                                  border: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
                                   ),
                                 ),
+                                style: TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.normal),
                               ),
                             ),
+                            IconButton(
+                                onPressed: () async {
+                                  // Interstitial Ad Implementation
+                                  // AdMobAdsProvider.instance
+                                  //     .showInterstitialAd(() {});
+                                  AdsHandler().getAd();
+
+                                  // AdMobAdsProvider.instance
+                                  //     .ShowRewardedAd(() {});
+                                  await controller.startGenerating(context);
+                                },
+                                icon: Icon(Icons.double_arrow))
+                          ],
+                        ),
+                      ),
                     ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 8),
+                    Row(
+                      children: [
+                        Text(
+                          '   Example Topics:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 2),
+                    AutoScrollingChips(
+                      prompts: controller.premoptList1,
+                      onPromptTap: (prompt) {
+                        controller.textEditingController.text = prompt;
+                      },
+                      reverseScroll: true,
+                      scrollDuration: Duration(seconds: 250),
+                      gap: 0.0,
+                    ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 0.5),
+                    AutoScrollingChips(
+                      prompts: controller.premoptList2,
+                      onPromptTap: (prompt) {
+                        controller.textEditingController.text = prompt;
+                      },
+                      reverseScroll: false,
+                      scrollDuration: Duration(seconds: 300),
+                      gap: 0.0,
+                    ),
+                    verticalSpace(SizeConfig.blockSizeVertical * 0.5),
+                    AutoScrollingChips(
+                      prompts: controller.premoptList3,
+                      onPromptTap: (prompt) {
+                        controller.textEditingController.text = prompt;
+                      },
+                      reverseScroll: true,
+                      scrollDuration: Duration(seconds: 150),
+                      gap: 0.0,
+                    )
                   ],
                 ),
               ),
-
-              // Example Prompts
-              const SizedBox(height: 32),
-              // GestureDetector(
-              //   onTap: () {
-              //     RateUsService.rateus();
-              //   },
-              //   child: Container(
-              //     height: 100,
-              //     width: 100,
-              //     color: Colors.black,
-              //     child: Text(
-              //       'rate',
-              //       style: TextStyle(color: Colors.white),
-              //     ),
-              //   ),
-              // ),
-              // ElevatedButton(
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: const Color(0xFF6E56CF),
-              //     minimumSize: const Size(double.infinity, 48),
-              //     shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.circular(8),
-              //     ),
-              //   ),
-              //   onPressed: ,
-              //   child: const Text(
-              //     'rate us',
-              //     style: TextStyle(
-              //       fontSize: 16,
-              //       fontWeight: FontWeight.w500,
-              //     ),
-              //   ),
-              // ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding:
-                      EdgeInsets.only(left: SizeConfig.blockSizeHorizontal * 4),
-                  child: Text(
-                    'Try an example:',
-                    style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade900,
-                        fontWeight: FontWeight.bold),
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Builder(
+                builder: (context) => Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [MyAppColors.color1, MyAppColors.color2],
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      Scaffold.of(context).openEndDrawer();
+                    },
+                    child: Icon(
+                      Icons.menu,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Obx(() => Align(
-                    alignment: Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: controller.examplePrompts.map((prompt) {
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 35, bottom: 12),
-                          child: GestureDetector(
-                            onTap: () => controller.setPrompt(prompt),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE9ECEF),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '"$prompt"',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )),
-            ],
-          ),
+            ),
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '"Your imagination is the only limit."',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  verticalSpace(8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'See beyond with AI',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey.shade300.withOpacity(0.7)),
+                        textAlign: TextAlign.center,
+                      ),
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        color: Colors.grey.shade300.withOpacity(0.7),
+                      )
+                    ],
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+      endDrawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: MyAppColors.color2,
+              ),
+              child: Text('Menu',
+                  style: TextStyle(color: Colors.white, fontSize: 24)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.star_rate),
+              title: const Text('Feedback'),
+              onTap: () => _sendFeedback(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share'),
+              onTap: () => _shareApp(context),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+class AutoScrollingChips extends StatelessWidget {
+  final List<String> prompts;
+  final Function(String) onPromptTap;
+  final bool reverseScroll;
+  final Duration scrollDuration;
+  final double gap;
 
-// import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
-// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+  const AutoScrollingChips({
+    Key? key,
+    required this.prompts,
+    required this.onPromptTap,
+    this.reverseScroll = false,
+    this.scrollDuration = const Duration(seconds: 30),
+    this.gap = 16.0,
+  }) : super(key: key);
 
-// class HomeScreen extends StatelessWidget {
-//   final TextEditingController topicController = TextEditingController();
-
-//   @override
-//   Widget build(BuildContext context) {
-  
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return ScrollLoopAutoScroll(
+      scrollDirection: Axis.horizontal,
+      delay: Duration.zero,
+      duration: scrollDuration,
+      gap: gap,
+      duplicateChild: 1,
+      reverseScroll: reverseScroll,
+      enableScrollInput: true,
+      delayAfterScrollInput: const Duration(seconds: 1),
+      child: Row(
+        children: prompts.map((prompt) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: InkWell(
+              onTap: () => onPromptTap(prompt),
+              child: Chip(
+                label: Text('"$prompt"'),
+                backgroundColor: Colors.white,
+                shape:
+                    const StadiumBorder(side: BorderSide(color: Colors.white)),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}

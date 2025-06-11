@@ -45,4 +45,8 @@ Icons should vary and match the meaning of each point.
 ''';
     }
   }
+
+  static String getTitlesGenInstructions = '''
+
+''';
 }

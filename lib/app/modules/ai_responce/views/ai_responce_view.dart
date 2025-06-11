@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:napkin/app/data/gemini_ai/ai_prompt.dart';
 import 'package:napkin/app/data/gemini_ai/ai_schema.dart';
 import 'package:napkin/app/data/model_classes/slideData.dart';
@@ -18,8 +19,11 @@ import 'package:napkin/app/data/size_config.dart';
 import 'package:napkin/app/data/view_handler/view_handler.dart';
 import 'package:napkin/app/modules/home/controllers/home_controller.dart';
 import 'package:napkin/app/routes/app_pages.dart';
+import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
+import 'package:napkin/app/services/ads/adshandler.dart';
 import 'package:napkin/app/services/feedback_service.dart';
 import 'package:napkin/app/services/rate_us_service.dart';
+import 'package:napkin/app/utills/app_strings.dart';
 import 'package:napkin/app/widgets/start_feedback_widget.dart';
 import 'package:napkin/app/widgets/touch_guide_animation.dart';
 // import 'package:napkin/app/data/size_config.dart';
@@ -28,446 +32,209 @@ import '../controllers/ai_responce_controller.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 // import 'package:flutter/material.dart';
 // import 'dart:';
+import 'package:napkin/app/data/models/slide_content_new.dart';
+import 'package:napkin/app/utills/app_colors.dart';
+import 'package:napkin/app/widgets/presentation_slide.dart';
 
 class AiResponceView extends GetView<AiResponceController> {
-  const AiResponceView({super.key});
-  @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(Duration(milliseconds: 1000));
-      RateUsService.rateus();
-    });
-    void showLoading(String massage) {
-      showDialog(
-        context: context,
-        barrierDismissible: false, // Prevents closing by tapping outside
-        builder: (context) {
-          return Dialog(
+  AiResponceView({Key? key}) : super(key: key);
+
+  void _showExportingOverlay(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
             backgroundColor: Colors.transparent,
+            elevation: 0,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 10),
-                  Text(massage, style: TextStyle(fontSize: 16)),
+                  CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(MyAppColors.color2),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Exporting PowerPoint...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ],
               ),
             ),
-          );
-        },
-      );
-    }
-
-// Hide the loading dialog
-    void hideLoading() {
-      Navigator.pop(context);
-    }
-
-    Future<String> generateKeyWords(SlidePart slidePart) async {
-      String sysinstructionprompt =
-          AiPrompt().getSystemInstructions(slidePart.type);
-      // Each paragraph should contain only on one type.
-      print(sysinstructionprompt);
-      final model = GenerativeModel(
-        model: RcVariables.geminiAiModel,
-        apiKey: RcVariables.apikey,
-        generationConfig: GenerationConfig(
-            temperature: 1,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-            responseSchema: AiSchema().getJsonSchema(slidePart.type)),
-        systemInstruction: Content.system(sysinstructionprompt),
-      );
-
-      final content = [
-        // Content.multi([TextPart("Generate json")]),
-        Content.text(
-            // "Make The course content devided into 4 or more stages. each stage contains 2 to 5 chapter and each chapter covers 3 to 6 subtopics."
-            slidePart.slideContent),
-      ];
-
-      try {
-        final response = await model.generateContent(content);
-
-        print('Respons: ${response.text}');
-        return response.text!;
-        // print('Respons: ${myresponce.value}');
-      } catch (e) {
-        print('failed');
-        print(e.toString());
-        // hasError.value = true;
-        return '';
-      }
-    }
-
-    var slideHeight = SizeConfig.screenWidth * 9 / 16;
-    var slideWidth = SizeConfig.screenWidth;
-
-    return WillPopScope(
-      onWillPop: () async {
-        return await controller.isBackAllowed();
+          ),
+        );
       },
-      child: Scaffold(
-          // bottomSheet: Container(
-          //   height: 64,
-          //   // height: SizeConfig.blockSizeHorizontal * 20,
-          //   // padding: EdgeInsets.only(top: 10),
-          //   color: Colors.red.shade700, // Red background
-          //   child: Row(
-          //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          //     children: [
-          //       IconButton(
-          //           onPressed: () {
-          //             controller.isEditable.toggle();
-          //             print(controller.isEditable.value);
-          //           },
-          //           icon: Icon(
-          //             Icons.edit,
-          //             size: 32,
-          //             color: Colors.white,
-          //           )),
-          //       IconButton(
-          //           onPressed: () {},
-          //           icon: Icon(
-          //             Icons.download,
-          //             color: Colors.white,
-          //             size: 32,
-          //           )),
-          //       IconButton(
-          //           onPressed: () async {
-          //             {
-          //               print("button pressed");
-          //               // controller.slides = slides;
-          //               controller.isAllowBackButton.value = false;
-          //               final filePath = await Get.showOverlay(
-          //                   asyncFunction: () async {
-          //                     var filePath =
-          //                         await controller.generatePPTX(context);
-          //                     return filePath;
-          //                   },
-          //                   loadingWidget: Center(
-          //                       child: Column(
-          //                     mainAxisAlignment: MainAxisAlignment.center,
-          //                     children: [
-          //                       CircularProgressIndicator(),
-          //                       Container(
-          //                         padding: EdgeInsets.only(
-          //                             top: SizeConfig.blockSizeHorizontal * 5),
-          //                         child: Text(
-          //                           "Generating slides...",
-          //                           textAlign: TextAlign.center,
-          //                           style: TextStyle(
-          //                               fontSize: 20,
-          //                               decoration: TextDecoration.none,
-          //                               color: Colors.white),
-          //                         ),
-          //                       )
-          //                     ],
-          //                   )));
-          //               controller.isAllowBackButton.value = true;
-          //               controller.shareFile(filePath);
-          //             }
-          //           },
-          //           icon: Icon(
-          //             Icons.share,
-          //             size: 32,
-          //             color: Colors.white,
-          //           )),
-          //       // GestureDetector(
-          //       //   onTap: () async {
-          //       //     print("button pressed");
-          //       //     controller.slides = slides;
-          //       //     controller.isAllowBackButton.value = false;
-          //       //     final filePath = await Get.showOverlay(
-          //       //         asyncFunction: () async {
-          //       //           var filePath = await controller.generatePPTX(context);
-          //       //           return filePath;
-          //       //         },
-          //       //         loadingWidget: Center(
-          //       //             child: Column(
-          //       //           mainAxisAlignment: MainAxisAlignment.center,
-          //       //           children: [
-          //       //             CircularProgressIndicator(),
-          //       //             Container(
-          //       //               padding: EdgeInsets.only(
-          //       //                   top: SizeConfig.blockSizeHorizontal * 5),
-          //       //               child: Text(
-          //       //                 "Generating slides...",
-          //       //                 textAlign: TextAlign.center,
-          //       //                 style: TextStyle(
-          //       //                     fontSize: 20,
-          //       //                     decoration: TextDecoration.none,
-          //       //                     color: Colors.white),
-          //       //               ),
-          //       //             )
-          //       //           ],
-          //       //         )));
-          //       //     controller.isAllowBackButton.value = true;
-          //       //     controller.shareFile(filePath);
-          //       //   },
-          //       //   child: Center(
-          //       //     child: Container(
-          //       //       padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-          //       //       child: Text(
-          //       //         "Save & Share",
-          //       //         style: TextStyle(
-          //       //             color: Colors.red,
-          //       //             fontWeight: FontWeight.w900,
-          //       //             fontSize: 16),
-          //       //       ),
-          //       //       decoration: BoxDecoration(
-          //       //           boxShadow: [
-          //       //             BoxShadow(
-          //       //                 color: const Color.fromARGB(255, 196, 0, 0),
-          //       //                 offset: Offset(2, 4),
-          //       //                 blurRadius: 20,
-          //       //                 spreadRadius: 3)
-          //       //           ],
-          //       //           borderRadius: BorderRadius.circular(15),
-          //       //           color: Colors.white),
-          //       //     ),
-          //       //   ),
-          //       // ),
-          //       // GestureDetector(
-          //       //   onTap: ()async{
-          //       //   },
-          //       // )
-          //     ],
-          //   ),
-          // ),
+    );
+  }
 
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(60.0),
-            child: AppBar(
-              flexibleSpace: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.redAccent.shade700,
-                      Colors.redAccent.shade400,
-                      // Colors.red
-                    ], // your gradient colors
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-              leading: IconButton(
-                  onPressed: () {
-                    HomeController hc = Get.find();
-                    hc.initPrompts();
-                    hc.textEditingController.clear();
-                    Get.back();
-                    // Get.offAllNamed(Routes.HOME);
-                  },
-                  icon: Icon(
-                    Icons.arrow_back_ios_rounded,
-                    color: Colors.white,
-                  )),
-              title: const Text(
-                'VIZZ AI',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              centerTitle: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0, // optional, for a flat look
-              actions: [
-                StarFeedbackWidget(
-                  // size: SizeConfig.blockSizeHorizontal * 5,
-                  size: 30,
-                  mainContext: context,
-                  icon: Icons.flag,
-                ),
-                IconButton(
-                    onPressed: () {
-                      controller.isEditable.toggle();
-                      // print(controller.isEditable.value);
-                    },
-                    icon: Icon(
-                      Icons.edit,
-                      // size: SizeConfig.blockSizeHorizontal * 5,
-                      size: 30,
-                      color: Colors.white,
-                    )),
-                IconButton(
-                    onPressed: () async {
-                      {
-                        try {
-                          final connectivity =
-                              await Connectivity().checkConnectivity();
-                          if (connectivity[0] == ConnectivityResult.none) {
-                            Get.snackbar('No Internet Connection',
-                                'Please check your internet and try again');
-                            return;
-                          }
-                        } catch (e) {
-                          print('Connectivity error: $e');
-                          return;
-                        }
-                        showLoading('Creating Presentation...');
-                        final filePath = await controller.generatePPTX(context);
-                        // print("button pressed");
-                        // controller.slides = slides;
-                        // controller.isAllowBackButton.value = false;
-                        // final filePath = await Get.showOverlay(
-                        //     asyncFunction: () async {
-                        //       var filePath =
-                        //           await controller.generatePPTX(context);
-                        //       return filePath;
-                        //     },
-                        //     loadingWidget: Center(
-                        //         child: Column(
-                        //       mainAxisAlignment: MainAxisAlignment.center,
-                        //       children: [
-                        //         CircularProgressIndicator(),
-                        //         Container(
-                        //           padding: EdgeInsets.only(
-                        //               top: SizeConfig.blockSizeHorizontal * 5),
-                        //           child: Text(
-                        //             "Generating slides...",
-                        //             textAlign: TextAlign.center,
-                        //             style: TextStyle(
-                        //                 fontSize: 20,
-                        //                 decoration: TextDecoration.none,
-                        //                 color: Colors.white),
-                        //           ),
-                        //         )
-                        //       ],
-                        //     )));
+  // // Banner Ad Implementation start // // //
+// ? Commented by jamal start
+  late BannerAd myBanner;
+  RxBool isBannerLoaded = false.obs;
 
-                        controller.isAllowBackButton.value = true;
+  initBanner() {
+    BannerAdListener listener = BannerAdListener(
+      // Called when an ad is successfully received.
+      onAdLoaded: (Ad ad) {
+        print('Ad loaded.');
+        isBannerLoaded.value = true;
+      },
+      // Called when an ad request failed.
+      onAdFailedToLoad: (Ad ad, LoadAdError error) {
+        // Dispose the ad here to free resources.
+        ad.dispose();
+        print('Ad failed to load: $error');
+      },
+      // Called when an ad opens an overlay that covers the screen.
+      onAdOpened: (Ad ad) {
+        print('Ad opened.');
+      },
+      // Called when an ad removes an overlay that covers the screen.
+      onAdClosed: (Ad ad) {
+        print('Ad closed.');
+      },
+      // Called when an impression occurs on the ad.
+      onAdImpression: (Ad ad) {
+        print('Ad impression.');
+      },
+    );
 
-                        controller.shareFile(filePath);
-                        hideLoading();
-                      }
-                    },
-                    icon: Icon(
-                      Icons.share,
-                      // size: SizeConfig.blockSizeHorizontal * 5,
-                      size: 30,
-                      color: Colors.white,
-                    )),
-                SizedBox(
-                  width: 16,
-                )
+    myBanner = BannerAd(
+      adUnitId: AppStrings.ADMOB_BANNER,
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: listener,
+    );
+    myBanner.load();
+  } // ? Commented by jamal end
+
+  // / Banner Ad Implementation End ///
+  @override
+  Widget build(BuildContext context) {
+    initBanner(); // ? Commented by jamal
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: Text(
+          'Generated Slides',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: MyAppColors.color2,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () {
+            AdsHandler().getAd();
+            Get.back();
+          },
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+        ),
+        actions: [
+          StarFeedbackWidget(
+            size: SizeConfig.blockSizeHorizontal * 5,
+            mainContext: context,
+            icon: Icons.flag,
+          ),
+          IconButton(
+            onPressed: () async {
+              _showExportingOverlay(context);
+              final filePath = await controller.generatePPTX(context);
+              Navigator.of(context).pop(); // Dismiss the loading overlay
+              if (filePath.isNotEmpty) {
+                controller.shareFile(filePath);
+              }
+            },
+            icon: Icon(Icons.share, color: Colors.white),
+            tooltip: 'Save as PowerPoint',
+          ),
+          SizedBox(width: 16), // Add spacing from right edge
+        ],
+      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: MyAppColors.color2),
+                SizedBox(height: 16),
+                Text('Generating detailed slides...',
+                    style: TextStyle(fontSize: 16)),
               ],
             ),
-          ),
-          body: Obx(() => controller.slideData.value.slidePart.isEmpty
-              ? CircularProgressIndicator()
-              : SafeArea(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        bottom: SizeConfig.blockSizeHorizontal * 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          for (int i = 0;
-                              i <
-                                  controller.slideData.value.slidePart.length -
-                                      1;
-                              i++)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0, horizontal: 14),
-                              child: Obx(() {
-                                final part = controller
-                                    .slideData.value.slidePart[i].value;
-                                print(controller.slideData.value.slidePart[i]
-                                    .value.slideContent);
-                                return GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      final connectivity = await Connectivity()
-                                          .checkConnectivity();
-                                      if (connectivity[0] ==
-                                          ConnectivityResult.none) {
-                                        Get.snackbar('No Internet Connection',
-                                            'Please check your internet and try again');
-                                        return;
-                                      }
-                                    } catch (e) {
-                                      print('Connectivity error: $e');
-                                      return;
-                                    }
-                                    showLoading('Generating...');
-                                    String pt = await generateKeyWords(part);
-                                    hideLoading();
-                                    Map<String, dynamic> ptt = jsonDecode(pt);
-                                    // print('pt $ptt');
+          );
+        }
 
-                                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [ptt]);
-                                    // controller.setGraph(index, ptt, part.type);
+        if (controller.presentationContent.value == null) {
+          return Center(
+            child: Text('No content generated yet'),
+          );
+        }
 
-                                    Get.toNamed(Routes.SHOW_GRAPH,
-                                        arguments: [part.type, ptt]);
+        return Column(
+          children: [
+            verticalSpace(16),
 
-                                    // Get.toNamed(Routes.SHOW_GRAPH, arguments: [keyPoints!]);
-                                    // generated.value = true;
-                                  },
-                                  child: Container(
-                                    height: slideHeight,
-                                    width: slideWidth,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.red.shade50, // Red background
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    padding: EdgeInsets.all(
-                                        SizeConfig.blockSizeHorizontal * 4),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Container(
-                                                    alignment:
-                                                        Alignment.topLeft,
-                                                    // height: SizeConfig.screenHeight * 0.3,
-                                                    // width: SizeConfig.screenWidth * 0.9,
-                                                    padding:
-                                                        EdgeInsets.fromLTRB(
-                                                            0, 0, 10, 0),
-                                                    // decoration: BoxDecoration(border: Border.all()),
-                                                    child: Obx(() => controller
-                                                            .isEditable.value
-                                                        ? EditableMarkdown(
-                                                            index: i,
-                                                          )
-                                                        : simpleMarkDown(
-                                                            index: i,
-                                                          ))),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ))),
+            Obx(() => isBannerLoaded.value &&
+                    AdMobAdsProvider.instance.isAdEnable.value
+                ? Container(
+                    height: AdSize.banner.height.toDouble(),
+                    child: AdWidget(ad: myBanner))
+                : Container()), // ? Commented by jamal end
+            verticalSpace(8),
+
+            // Title section
+            // Container(
+            //   padding: EdgeInsets.all(24),
+            //   child: Text(
+            //     controller.presentationContent.value!.title,
+            //     style: TextStyle(
+            //       fontSize: 24,
+            //       fontWeight: FontWeight.bold,
+            //       color: Colors.black87,
+            //     ),
+            //     textAlign: TextAlign.center,
+            //   ),
+            // ),
+
+            // Slides list
+            Expanded(
+              child: ListView.builder(
+                itemCount: controller.presentationContent.value!.slides.length,
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, index) {
+                  final slide =
+                      controller.presentationContent.value!.slides[index];
+                  return Obx(() => PresentationSlide(
+                        title: slide.title,
+                        paragraphs: slide.paragraphs,
+                        imagePrompt: slide.imagePrompt,
+                        selectedImage: controller.selectedImages[index],
+                        onImageSelected: (file) =>
+                            controller.handleImageSelected(index, file),
+                        onGenerateImage: () => controller.generateImage(index),
+                        isGenerating:
+                            controller.imageGenerating[index] ?? false,
+                      ));
+                },
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }
