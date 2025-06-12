@@ -5,7 +5,7 @@ class AdsHandler{
 static int addcount=0;
 getAd(){
   addcount++;
-  if(addcount>=3){
+  if(addcount>=1){
     AdMobAdsProvider.instance.showInterstitialAd(() {});
     addcount=0;
   }
