@@ -1,0 +1,2 @@
+C:/IzzaTech/ai_visualizer/android/app/.cxx/RelWithDebInfo/2m4z4b29/x86_64/CMakeFiles/edit_cache.dir
+C:/IzzaTech/ai_visualizer/android/app/.cxx/RelWithDebInfo/2m4z4b29/x86_64/CMakeFiles/rebuild_cache.dir

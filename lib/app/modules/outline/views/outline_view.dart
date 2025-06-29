@@ -76,6 +76,14 @@ class OutlineView extends GetView<OutlineController> {
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
         ),
         actions: [
+          IconButton(
+            onPressed: () => controller.toggleEditing(),
+            icon: Obx(() => Icon(
+                  controller.isEditing.value ? Icons.check_rounded : Icons.edit,
+                  color: Colors.white,
+                  // controller.isEditing.value ? Colors.white : Colors.white,
+                )),
+          ),
           StarFeedbackWidget(
             size: SizeConfig.blockSizeHorizontal * 5,
             mainContext: context,
@@ -244,49 +252,208 @@ class OutlineView extends GetView<OutlineController> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            slide.slideTitle,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: MyAppColors.color2,
-                                            ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          ...slide.keyPoints
-                                              .map((point) => Padding(
-                                                    padding: EdgeInsets.only(
-                                                        bottom: 4),
+                                          // Title with gesture detector
+                                          Obx(() => controller.isEditing.value
+                                              ? GestureDetector(
+                                                  onTap: () => _showEditDialog(
+                                                    context,
+                                                    title: slide.slideTitle,
+                                                    isTitle: true,
+                                                    onSave: (value) =>
+                                                        controller
+                                                            .updateSlideTitle(
+                                                                index, value),
+                                                  ),
+                                                  child: Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 8),
                                                     child: Row(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
                                                       children: [
-                                                        Padding(
-                                                          padding:
-                                                              EdgeInsets.only(
-                                                                  top: 6),
-                                                          child: Icon(
-                                                              Icons.arrow_right,
-                                                              color: MyAppColors
-                                                                  .color2),
-                                                        ),
-                                                        SizedBox(width: 4),
                                                         Expanded(
                                                           child: Text(
-                                                            point,
+                                                            slide.slideTitle,
                                                             style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: Colors
-                                                                  .black54,
-                                                              height: 1.5,
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: MyAppColors
+                                                                  .color2,
                                                             ),
                                                           ),
                                                         ),
+                                                        Icon(Icons.edit,
+                                                            size: 16,
+                                                            color: Colors.grey),
                                                       ],
                                                     ),
-                                                  ))
-                                              .toList(),
+                                                  ),
+                                                )
+                                              : Text(
+                                                  slide.slideTitle,
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: MyAppColors.color2,
+                                                  ),
+                                                )),
+                                          SizedBox(height: 8),
+                                          ...slide.keyPoints
+                                              .asMap()
+                                              .entries
+                                              .map((entry) {
+                                            final pointIndex = entry.key;
+                                            final point = entry.value;
+                                            return Padding(
+                                              padding:
+                                                  EdgeInsets.only(bottom: 4),
+                                              child:
+                                                  Obx(
+                                                      () =>
+                                                          controller.isEditing
+                                                                  .value
+                                                              ? GestureDetector(
+                                                                  onTap: () =>
+                                                                      _showEditDialog(
+                                                                    context,
+                                                                    title:
+                                                                        point,
+                                                                    isTitle:
+                                                                        false,
+                                                                    onSave: (value) => controller.updateKeyPoint(
+                                                                        index,
+                                                                        pointIndex,
+                                                                        value),
+                                                                  ),
+                                                                  child: Row(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Padding(
+                                                                        padding:
+                                                                            EdgeInsets.only(top: 6),
+                                                                        child: Icon(
+                                                                            Icons
+                                                                                .arrow_right,
+                                                                            color:
+                                                                                MyAppColors.color2),
+                                                                      ),
+                                                                      SizedBox(
+                                                                          width:
+                                                                              4),
+                                                                      Expanded(
+                                                                        child:
+                                                                            Container(
+                                                                          padding:
+                                                                              EdgeInsets.symmetric(vertical: 8),
+                                                                          child:
+                                                                              Row(
+                                                                            children: [
+                                                                              Expanded(
+                                                                                child: Text(
+                                                                                  point,
+                                                                                  style: TextStyle(
+                                                                                    fontSize: 14,
+                                                                                    color: Colors.black54,
+                                                                                    height: 1.5,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                              Row(
+                                                                                mainAxisSize: MainAxisSize.min,
+                                                                                children: [
+                                                                                  Icon(Icons.edit, size: 16, color: Colors.grey),
+                                                                                  SizedBox(width: 8),
+                                                                                  IconButton(
+                                                                                    icon: Icon(Icons.delete, size: 16),
+                                                                                    color: Colors.red,
+                                                                                    padding: EdgeInsets.zero,
+                                                                                    constraints: BoxConstraints(),
+                                                                                    onPressed: () => controller.removeKeyPoint(index, pointIndex),
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                )
+                                                              : Row(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Padding(
+                                                                      padding: EdgeInsets
+                                                                          .only(
+                                                                              top: 6),
+                                                                      child: Icon(
+                                                                          Icons
+                                                                              .arrow_right,
+                                                                          color:
+                                                                              MyAppColors.color2),
+                                                                    ),
+                                                                    SizedBox(
+                                                                        width:
+                                                                            4),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        point,
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              14,
+                                                                          color:
+                                                                              Colors.black54,
+                                                                          height:
+                                                                              1.5,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                )),
+                                            );
+                                          }).toList(),
+
+                                          // Add new key point button
+                                          Obx(() => controller.isEditing.value
+                                              ? Padding(
+                                                  padding:
+                                                      EdgeInsets.only(top: 8),
+                                                  child: ElevatedButton.icon(
+                                                    onPressed: () =>
+                                                        _showEditDialog(
+                                                      context,
+                                                      title: "New key point",
+                                                      isTitle: false,
+                                                      onSave: (value) =>
+                                                          controller
+                                                              .addKeyPoint(
+                                                                  index, value),
+                                                    ),
+                                                    icon: Icon(Icons.add,
+                                                        size: 20),
+                                                    label:
+                                                        Text("Add Key Point"),
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          MyAppColors.color2,
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 8),
+                                                    ),
+                                                  ),
+                                                )
+                                              : SizedBox()),
                                         ],
                                       ),
                                     ),
@@ -329,6 +496,83 @@ class OutlineView extends GetView<OutlineController> {
           ),
         );
       }),
+    );
+  }
+
+  void _showEditDialog(
+    BuildContext context, {
+    required String title,
+    required bool isTitle,
+    required Function(String) onSave,
+  }) {
+    final TextEditingController controller = TextEditingController(text: title);
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isTitle ? 'Edit Slide Title' : 'Edit Key Point',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: MyAppColors.color2,
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                maxLines: isTitle ? 1 : 3,
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (controller.text.trim().isNotEmpty) {
+                        onSave(controller.text.trim());
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: MyAppColors.color2,
+                      foregroundColor: Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: Text('Done'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

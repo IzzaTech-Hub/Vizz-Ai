@@ -25,10 +25,10 @@ class PresentationContent {
 }
 
 class SlideContentNew {
-  final String title;
-  final List<String> paragraphs;
-  final String? imagePrompt;
-  final SlideType type;
+  String title;
+  List<String> paragraphs;
+  String? imagePrompt;
+  SlideType type;
 
   SlideContentNew({
     required this.title,
@@ -36,6 +36,20 @@ class SlideContentNew {
     this.imagePrompt,
     required this.type,
   });
+
+  SlideContentNew copyWith({
+    String? title,
+    List<String>? paragraphs,
+    String? imagePrompt,
+    SlideType? type,
+  }) {
+    return SlideContentNew(
+      title: title ?? this.title,
+      paragraphs: paragraphs ?? List.from(this.paragraphs),
+      imagePrompt: imagePrompt ?? this.imagePrompt,
+      type: type ?? this.type,
+    );
+  }
 
   factory SlideContentNew.fromJson(Map<String, dynamic> json) {
     return SlideContentNew(

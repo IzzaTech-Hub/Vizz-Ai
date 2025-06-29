@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -7,26 +8,33 @@ import 'package:flutter_pptx/flutter_pptx.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:napkin/app/data/model_classes/comparison.dart';
-import 'package:napkin/app/data/model_classes/graph_class.dart';
-import 'package:napkin/app/data/model_classes/hierarchy.dart';
-import 'package:napkin/app/data/model_classes/key_points.dart';
-import 'package:napkin/app/data/model_classes/sbs.dart';
-import 'package:napkin/app/data/model_classes/slideData.dart';
-import 'package:napkin/app/data/model_classes/slidePart.dart';
-import 'package:napkin/app/data/models/presentation_outline.dart';
-import 'package:napkin/app/data/models/slide_content_new.dart';
-import 'package:napkin/app/data/size_config.dart';
-import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
-import 'package:napkin/app/services/rate_us_service.dart';
-import 'package:napkin/app/widgets/touch_guide_animation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:napkin/app/data/gemini_ai/ai_schema.dart';
 import 'package:napkin/app/data/gemini_prompts.dart';
 import 'package:napkin/app/data/rc_variables.dart';
+import 'package:napkin/app/data/models/slide_content_new.dart';
+import 'package:napkin/app/data/models/presentation_outline.dart';
+import 'package:napkin/app/data/models/presentation_settings.dart';
+import 'package:napkin/app/data/model_classes/slideData.dart';
+import 'package:napkin/app/data/model_classes/slidePart.dart';
+import 'package:napkin/app/data/model_classes/hierarchy.dart';
+import 'package:napkin/app/data/model_classes/key_points.dart';
+import 'package:napkin/app/data/model_classes/graph_class.dart';
+import 'package:napkin/app/data/model_classes/comparison.dart';
+import 'package:napkin/app/data/model_classes/sbs.dart';
+import 'package:napkin/app/data/size_config.dart';
+import 'package:napkin/app/routes/app_pages.dart';
+import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
 import 'package:napkin/app/services/gemini_image_service.dart';
+import 'package:napkin/app/services/rate_us_service.dart';
+import 'package:napkin/app/widgets/touch_guide_animation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:napkin/app/utills/app_colors.dart';
+// import 'package:dart_pptx/dart_pptx.dart';
+
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class AiResponceController extends GetxController {
   String mainTitle = "";
@@ -43,13 +51,29 @@ class AiResponceController extends GetxController {
       Rx<PresentationContent?>(null);
   final RxMap<int, File> selectedImages = RxMap<int, File>();
   final RxMap<int, bool> imageGenerating = RxMap<int, bool>();
+  final Rx<PresentationSettings?> settings = Rx<PresentationSettings?>(null);
+  final RxBool isEditing = false.obs;
 
   @override
   void onInit() async {
     super.onInit();
-    // allcontentString = Get.arguments[0];
-    if (Get.arguments != null) {
-      generateDetailedContent(Get.arguments as PresentationOutline);
+    print(
+        'DEBUG: AI Response Controller onInit with arguments: ${Get.arguments}');
+    if (Get.arguments != null &&
+        Get.arguments is List &&
+        Get.arguments.length == 2) {
+      final outline = Get.arguments[0] as PresentationOutline;
+      settings.value = Get.arguments[1] as PresentationSettings;
+      print(
+          'DEBUG: Received outline with ${outline.slides.length} slides and settings: ${settings.value?.toJson()}');
+      await generateDetailedContent(outline);
+    } else {
+      print('DEBUG: Invalid arguments received: ${Get.arguments}');
+      Get.snackbar(
+        'Error',
+        'Invalid arguments received',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -71,127 +95,102 @@ class AiResponceController extends GetxController {
 
       final pres = FlutterPowerPoint();
 
-      // Title slide
-      List<Widget> slides = [
-        Container(
-          height: slideHeight,
-          width: slideWidth,
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-          ),
-          child: Center(
-            child: Text(
-              presentationContent.value!.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red[900],
-                  fontWeight: FontWeight.w900),
-            ),
-          ),
-        ),
-      ];
-
-      // Content slides
-      for (int i = 1; i < presentationContent.value!.slides.length; i++) {
+      // Loop through slides and add them one-by-one
+      for (int i = 0; i < presentationContent.value!.slides.length; i++) {
         final slide = presentationContent.value!.slides[i];
         final hasImage =
-            selectedImages[i] != null && selectedImages[i]!.existsSync();
+            selectedImages.containsKey(i) && selectedImages[i] != null;
 
-        slides.add(
-          Container(
-            height: slideHeight,
-            width: slideWidth,
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-            ),
-            padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal * 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                Text(
-                  slide.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red[900],
-                  ),
-                ),
-                SizedBox(height: 12),
-                // Paragraphs with markdown
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Text content
-                      Expanded(
-                        flex: hasImage ? 7 : 10,
-                        child: MarkdownBody(
-                          data: slide.paragraphs.join('\n\n'),
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(
-                              fontSize: 10,
-                              color: Colors.black87,
-                              height: 1.3,
-                            ),
-                            strong: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red[900],
-                            ),
-                            em: TextStyle(
-                              fontSize: 10,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.purple[900],
-                            ),
-                            h1: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.red[900],
-                            ),
-                            h2: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple[900],
-                            ),
-                            listBullet: TextStyle(
-                              fontSize: 10,
-                              color: Colors.black87,
-                            ),
-                            listIndent: 16.0,
-                          ),
+        await pres.addWidgetSlide(
+          (size) {
+            return Container(
+              height: slideHeight,
+              width: slideWidth,
+              color: Colors.white,
+              child: (i == 0)
+                  ? Center(
+                      child: Text(
+                        slide.title ?? presentationContent.value!.title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.red[900],
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      // Image if available
-                      if (hasImage) ...[
-                        SizedBox(width: 12),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            slide.title,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[900],
+                            ),
+                          ),
+                        ),
+                        // Content
                         Expanded(
-                          flex: 3,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(
-                                image: FileImage(selectedImages[i]!),
-                                fit: BoxFit.cover,
-                              ),
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Text content
+                                Expanded(
+                                  flex: hasImage ? 3 : 1,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      for (String paragraph in slide.paragraphs)
+                                        Padding(
+                                          padding: EdgeInsets.only(bottom: 12),
+                                          child: MarkdownBody(
+                                            data: paragraph,
+                                            styleSheet: MarkdownStyleSheet(
+                                              p: TextStyle(
+                                                fontSize: 8,
+                                                color: Colors.black87,
+                                                height: 1.3,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                // Image if present
+                                if (hasImage) ...[
+                                  SizedBox(width: 16),
+                                  Container(
+                                    width: slideWidth * 0.25,
+                                    height: slideWidth * 0.25,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: FileImage(selectedImages[i]!),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+                    ),
+            );
+          },
+          pixelRatio: 2.5, // reasonable balance between quality & file size
+          context: context,
         );
-      }
-
-      // Add all slides to the presentation
-      for (Widget slide in slides) {
-        await pres.addWidgetSlide((size) => slide,
-            pixelRatio: 6.0, context: context);
       }
 
       final bytes = await pres.save();
@@ -199,9 +198,9 @@ class AiResponceController extends GetxController {
         throw Exception("Failed to generate PowerPoint content.");
       }
 
-      Directory appDocDir = await getApplicationDocumentsDirectory();
+      Directory appDocDir = await Directory('/storage/emulated/0/Download');
+      // Directory appDocDir = await getApplicationDocumentsDirectory();
 
-      // Sanitize the title
       String safeTitle = (presentationContent.value!.title.trim().isNotEmpty)
           ? presentationContent.value!.title
               .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
@@ -224,6 +223,200 @@ class AiResponceController extends GetxController {
     } catch (e) {
       print('Error generating PPTX: $e');
       Get.snackbar("Error", "Failed to save the PowerPoint file: $e");
+      return '';
+    }
+  }
+
+// import 'dart:io';
+// import 'dart:typed_data';
+// import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
+// import 'package:path_provider/path_provider.dart';
+// import 'package:pdf/widgets.dart' as pw;
+
+  Future<String> generatePDF(BuildContext context, {String? mainTitle}) async {
+    try {
+      if (presentationContent.value == null) {
+        throw Exception("No presentation content available.");
+      }
+
+      final pdf = pw.Document();
+      final slideHeight = SizeConfig.screenWidth * 9 / 16;
+      final slideWidth = SizeConfig.screenWidth;
+
+      // Preload images
+      Map<int, Uint8List> imageBytesMap = {};
+      for (int index in selectedImages.keys) {
+        imageBytesMap[index] = await selectedImages[index]!.readAsBytes();
+      }
+
+      for (int i = 0; i < presentationContent.value!.slides.length; i++) {
+        final slide = presentationContent.value!.slides[i];
+        final hasImage = imageBytesMap.containsKey(i);
+
+        pdf.addPage(
+          pw.Page(
+            pageFormat: PdfPageFormat.a4.landscape,
+            build: (pw.Context ctx) {
+              return pw.Container(
+                // width: slideWidth,
+                // height: slideHeight,
+                color: PdfColors.white,
+                child: (i == 0)
+                    ? pw.Center(
+                        child: pw.Text(
+                          slide.title ?? presentationContent.value!.title,
+                          style: pw.TextStyle(
+                            fontSize: 36,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.red900,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      )
+                    : pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            slide.title,
+                            style: pw.TextStyle(
+                              fontSize: 24,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.red900,
+                            ),
+                          ),
+                          pw.SizedBox(height: 10),
+                          // pw.Row(
+                          //   crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          //   children: [
+                          //     // Text content
+                          //     pw.Expanded(
+                          //       flex: hasImage ? 3 : 1,
+                          //       child: pw.Column(
+                          //         crossAxisAlignment:
+                          //             pw.CrossAxisAlignment.start,
+                          //         children: [
+                          //           for (String paragraph in slide.paragraphs)
+                          //             pw.Padding(
+                          //               padding: pw.EdgeInsets.only(bottom: 8),
+                          //               child: pw.Text(
+                          //                 paragraph,
+                          //                 style: pw.TextStyle(
+                          //                   fontSize: 10,
+                          //                   color: PdfColors.black,
+                          //                 ),
+                          //               ),
+                          //             ),
+                          //         ],
+                          //       ),
+                          //     ),
+                          //     if (hasImage) ...[
+                          //       pw.SizedBox(width: 10),
+                          //       pw.Container(
+                          //         width: 150,
+                          //         height: 150,
+                          //         decoration: pw.BoxDecoration(
+                          //           borderRadius: pw.BorderRadius.circular(8),
+                          //         ),
+                          //         child: pw.Image(
+                          //           pw.MemoryImage(imageBytesMap[i]!),
+                          //           fit: pw.BoxFit.cover,
+                          //         ),
+                          //       ),
+                          //     ],
+                          //   ],
+                          // ),
+                          hasImage
+                              ? pw.Row(
+                                  crossAxisAlignment:
+                                      pw.CrossAxisAlignment.start,
+                                  children: [
+                                    pw.Expanded(
+                                      child: pw.Column(
+                                        crossAxisAlignment:
+                                            pw.CrossAxisAlignment.start,
+                                        children: [
+                                          for (String paragraph
+                                              in slide.paragraphs)
+                                            pw.Padding(
+                                              padding:
+                                                  pw.EdgeInsets.only(bottom: 8),
+                                              child: pw.Text(
+                                                paragraph,
+                                                style: pw.TextStyle(
+                                                  fontSize: 18,
+                                                  color: PdfColors.black,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    pw.SizedBox(width: 10),
+                                    pw.Container(
+                                      width: 150,
+                                      height: 150,
+                                      decoration: pw.BoxDecoration(
+                                        borderRadius:
+                                            pw.BorderRadius.circular(8),
+                                      ),
+                                      child: pw.Image(
+                                        pw.MemoryImage(imageBytesMap[i]!),
+                                        fit: pw.BoxFit.cover,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : pw.Column(
+                                  crossAxisAlignment:
+                                      pw.CrossAxisAlignment.start,
+                                  children: [
+                                    for (String paragraph in slide.paragraphs)
+                                      pw.Padding(
+                                        padding: pw.EdgeInsets.only(bottom: 8),
+                                        child: pw.Text(
+                                          paragraph,
+                                          style: pw.TextStyle(
+                                            fontSize: 18,
+                                            color: PdfColors.black,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                )
+                        ],
+                      ),
+              );
+            },
+          ),
+        );
+      }
+
+      final bytes = await pdf.save();
+
+      // Save to Downloads
+      Directory dir = Directory('/storage/emulated/0/Download');
+      String safeTitle = (presentationContent.value!.title.trim().isNotEmpty)
+          ? presentationContent.value!.title
+              .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+              .replaceAll(RegExp(r'\.+'), '.')
+          : 'presentation';
+
+      if (!safeTitle.endsWith('.pdf')) {
+        safeTitle = '$safeTitle.pdf';
+      }
+
+      String filePath = '${dir.path}/$safeTitle';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes, flush: true);
+
+      print('PDF generated at: $filePath');
+      Get.snackbar("File Saved", "PDF has been saved as $safeTitle");
+
+      return filePath;
+    } catch (e) {
+      print('Error generating PDF: $e');
+      Get.snackbar("Error", "Failed to save the PDF file: $e");
       return '';
     }
   }
@@ -399,47 +592,7 @@ class AiResponceController extends GetxController {
   }
 
   Future<void> generateImage(int slideIndex) async {
-    bool isAdShown = await Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Row(
-          children: [
-            Icon(FontAwesomeIcons.gift, color: Colors.orange), // Ad icon
-            SizedBox(width: 10),
-            Text("Generate Image"),
-          ],
-        ),
-        // content: Text("To generate the image, you'll watch a short reward ad."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back(result: false);
-              // return false;
-            }, // Close dialog
-            child: Text("Cancel", style: TextStyle(color: Colors.black)),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Get.back(result: true); // Close dialog before showing ad
-
-              AdMobAdsProvider.instance.ShowRewardedAd(() {
-                // Your logic after ad is completed
-                print("Ad finished. Proceed with image generation.");
-              });
-            },
-            icon: Icon(Icons.play_circle_fill),
-            label: Text(
-              "Generate",
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    );
+    bool isAdShown = await showImageGenerationDialog();
     if (!isAdShown) return;
     // Get.dialog(Column(
     //   children: [
@@ -514,7 +667,13 @@ class AiResponceController extends GetxController {
 
   Future<void> generateDetailedContent(PresentationOutline outline) async {
     try {
+      print(
+          'DEBUG: Starting generateDetailedContent with outline: ${outline.toJson()}');
+      print('DEBUG: Using settings: ${settings.value?.toJson()}');
       isLoading.value = true;
+
+      // Print the schema we're using
+      AiSchema.printSchema();
 
       // Clear existing images and generation states
       selectedImages.clear();
@@ -522,8 +681,11 @@ class AiResponceController extends GetxController {
 
       // Convert outline to JSON string for the prompt
       final outlineJson = jsonEncode(outline.toJson());
+      print('DEBUG: Outline JSON for prompt: $outlineJson');
 
       // Initialize Gemini model
+      print(
+          'DEBUG: Initializing Gemini model with model: ${RcVariables.geminiAiModel}');
       final model = GenerativeModel(
         model: RcVariables.geminiAiModel,
         apiKey: RcVariables.apikey,
@@ -537,32 +699,250 @@ class AiResponceController extends GetxController {
         ),
       );
 
-      // Generate detailed content
-      final prompt = GeminiPrompts.generateDetailedContentPrompt(outlineJson);
+      // Generate detailed content with settings context
+      final prompt = GeminiPrompts.generateDetailedContentPrompt(
+        outlineJson,
+        purpose: settings.value?.purpose ?? 'Informative',
+        style: settings.value?.style ?? 'Professional',
+        detailLevel:
+            settings.value?.detailLevel.toString().split('.').last ?? 'medium',
+        includeImages: settings.value?.includeImages ?? true,
+      );
+      print('DEBUG: Generated prompt: $prompt');
+
+      print('DEBUG: Sending request to Gemini...');
       final response = await model.generateContent([Content.text(prompt)]);
+      print('DEBUG: Received response from Gemini');
 
       if (response.text == null) {
+        print('DEBUG: Gemini returned null response text');
         throw 'No response received from AI';
       }
+
+      print('DEBUG: Raw response from Gemini: ${response.text}');
 
       // Clean and parse the response
       String cleanJson = response.text!.trim();
       cleanJson = cleanJson.replaceAll('```json', '').replaceAll('```', '');
+      print('DEBUG: Cleaned JSON: $cleanJson');
 
-      final Map<String, dynamic> jsonResponse = jsonDecode(cleanJson);
-      final content = PresentationContent.fromJson(jsonResponse);
+      try {
+        final Map<String, dynamic> jsonResponse = jsonDecode(cleanJson);
+        print(
+            'DEBUG: Successfully parsed JSON with keys: ${jsonResponse.keys.join(", ")}');
 
-      presentationContent.value = content;
+        final content = PresentationContent.fromJson(jsonResponse);
+        print(
+            'DEBUG: Successfully created PresentationContent with ${content.slides.length} slides');
+
+        presentationContent.value = content;
+        print('DEBUG: Set presentationContent.value successfully');
+      } catch (parseError) {
+        print('DEBUG: Error parsing JSON: $parseError');
+        print('DEBUG: JSON that failed to parse: $cleanJson');
+        rethrow;
+      }
     } catch (e) {
-      print('Error generating detailed content: $e');
+      print('DEBUG: Error in generateDetailedContent: $e');
       Get.snackbar(
         'Error',
         'Failed to generate detailed content: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {
+      print('DEBUG: Setting isLoading to false');
       isLoading.value = false;
     }
+  }
+
+  void toggleEditing() {
+    isEditing.value = !isEditing.value;
+  }
+
+  void updateSlideTitle(int index, String newTitle) {
+    if (presentationContent.value == null) return;
+
+    final slides =
+        List<SlideContentNew>.from(presentationContent.value!.slides);
+    slides[index] = slides[index].copyWith(title: newTitle);
+
+    presentationContent.value = PresentationContent(
+      title: presentationContent.value!.title,
+      slides: slides,
+    );
+  }
+
+  void updateSlideParagraph(
+      int slideIndex, int paragraphIndex, String newParagraph) {
+    if (presentationContent.value == null) return;
+
+    final slides =
+        List<SlideContentNew>.from(presentationContent.value!.slides);
+    final paragraphs = List<String>.from(slides[slideIndex].paragraphs);
+    paragraphs[paragraphIndex] = newParagraph;
+
+    slides[slideIndex] = slides[slideIndex].copyWith(paragraphs: paragraphs);
+
+    presentationContent.value = PresentationContent(
+      title: presentationContent.value!.title,
+      slides: slides,
+    );
+  }
+
+  void addSlideParagraph(int slideIndex, String newParagraph) {
+    if (presentationContent.value == null) return;
+
+    final slides =
+        List<SlideContentNew>.from(presentationContent.value!.slides);
+    final paragraphs = List<String>.from(slides[slideIndex].paragraphs)
+      ..add(newParagraph);
+
+    slides[slideIndex] = slides[slideIndex].copyWith(paragraphs: paragraphs);
+
+    presentationContent.value = PresentationContent(
+      title: presentationContent.value!.title,
+      slides: slides,
+    );
+  }
+
+  void removeSlideParagraph(int slideIndex, int paragraphIndex) {
+    if (presentationContent.value == null) return;
+
+    final slides =
+        List<SlideContentNew>.from(presentationContent.value!.slides);
+    final paragraphs = List<String>.from(slides[slideIndex].paragraphs)
+      ..removeAt(paragraphIndex);
+
+    slides[slideIndex] = slides[slideIndex].copyWith(paragraphs: paragraphs);
+
+    presentationContent.value = PresentationContent(
+      title: presentationContent.value!.title,
+      slides: slides,
+    );
+  }
+
+  void showExportOptions(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        title: Text('Export Presentation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.picture_as_pdf, color: Colors.red),
+              title: Text('Export as PDF'),
+              onTap: () async {
+                Get.back();
+                showExportingOverlay(context);
+                final filePath = await generatePDF(Get.context!);
+                closeExportOverlay(context);
+                if (filePath.isNotEmpty) {
+                  shareFile(filePath);
+                }
+              },
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.slideshow, color: Colors.blue),
+              title: Text('Export as PowerPoint'),
+              onTap: () async {
+                Get.back();
+                showExportingOverlay(context);
+                final filePath = await generatePPTX(Get.context!);
+                closeExportOverlay(context);
+                if (filePath.isNotEmpty) {
+                  shareFile(filePath);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showExportingOverlay(BuildContext context) {
+    // Get.dialog(
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(MyAppColors.color2),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Exporting...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void closeExportOverlay(BuildContext context) {
+    Navigator.pop(context);
+  }
+
+  Future<bool> showImageGenerationDialog() async {
+    final result = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            Icon(FontAwesomeIcons.gift, color: Colors.orange),
+            SizedBox(width: 10),
+            Text("Generate Image"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text("Cancel", style: TextStyle(color: Colors.black)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Get.back(result: true);
+              AdMobAdsProvider.instance.ShowRewardedAd(() {
+                print("Ad finished. Proceed with image generation.");
+              });
+            },
+            icon: Icon(Icons.play_circle_fill),
+            label: Text(
+              "Generate",
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+    return result ?? false;
   }
 }
 

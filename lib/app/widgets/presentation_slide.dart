@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
 
-class PresentationSlide extends StatelessWidget {
+class PresentationSlide extends StatefulWidget {
   final String title;
   final List<String> paragraphs;
   final String? imagePrompt;
@@ -14,6 +14,11 @@ class PresentationSlide extends StatelessWidget {
   final Function() onGenerateImage;
   final File? selectedImage;
   final bool isGenerating;
+  final bool isEditing;
+  final Function(String) onTitleChanged;
+  final Function(int, String) onParagraphChanged;
+  final Function(String) onAddParagraph;
+  final Function(int) onRemoveParagraph;
 
   // Constants for text constraints
   static const double TITLE_MAX_CHARS = 40; // Maximum characters for title
@@ -104,7 +109,79 @@ class PresentationSlide extends StatelessWidget {
     required this.onGenerateImage,
     this.selectedImage,
     this.isGenerating = false,
+    this.isEditing = false,
+    required this.onTitleChanged,
+    required this.onParagraphChanged,
+    required this.onAddParagraph,
+    required this.onRemoveParagraph,
   }) : super(key: key);
+
+  @override
+  State<PresentationSlide> createState() => _PresentationSlideState();
+}
+
+class _PresentationSlideState extends State<PresentationSlide> {
+  late TextEditingController _titleController;
+  late List<TextEditingController> _paragraphControllers;
+  String _tempTitle = '';
+  List<String> _tempParagraphs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+  }
+
+  @override
+  void didUpdateWidget(PresentationSlide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title ||
+        oldWidget.paragraphs != widget.paragraphs ||
+        oldWidget.isEditing != widget.isEditing) {
+      _initializeControllers();
+    }
+  }
+
+  void _initializeControllers() {
+    _titleController = TextEditingController(text: widget.title);
+    _tempTitle = widget.title;
+    _paragraphControllers =
+        widget.paragraphs.map((p) => TextEditingController(text: p)).toList();
+    _tempParagraphs = List.from(widget.paragraphs);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    for (var controller in _paragraphControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _updateTitle(String value) {
+    setState(() {
+      _tempTitle = value;
+    });
+  }
+
+  void _updateParagraph(int index, String value) {
+    setState(() {
+      _tempParagraphs[index] = value;
+    });
+  }
+
+  void _commitTitleChanges() {
+    if (_tempTitle != widget.title) {
+      widget.onTitleChanged(_tempTitle);
+    }
+  }
+
+  void _commitParagraphChanges(int index) {
+    if (_tempParagraphs[index] != widget.paragraphs[index]) {
+      widget.onParagraphChanged(index, _tempParagraphs[index]);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,13 +192,13 @@ class PresentationSlide extends StatelessWidget {
 
     // For debugging purposes - print available space metrics
     assert(() {
-      final maxCharsPerLine = getMaxCharsPerLine(slideWidth);
-      final maxContentChars =
-          getMaxContentChars(slideWidth, imagePrompt != null);
-      print('Slide Metrics:');
-      print('Max chars per line: $maxCharsPerLine');
-      print('Max total chars: $maxContentChars');
-      print('Current content length: ${paragraphs.join(' ').length}');
+      final maxCharsPerLine = PresentationSlide.getMaxCharsPerLine(slideWidth);
+      final maxContentChars = PresentationSlide.getMaxContentChars(
+          slideWidth, widget.imagePrompt != null);
+      // print('Slide Metrics:');
+      // print('Max chars per line: $maxCharsPerLine');
+      // print('Max total chars: $maxContentChars');
+      // print('Current content length: ${widget.paragraphs.join(' ').length}');
       return true;
     }());
 
@@ -142,7 +219,7 @@ class PresentationSlide extends StatelessWidget {
       p: TextStyle(
         fontSize: slideWidth * 0.022,
         color: Colors.black87,
-        height: PARAGRAPH_LINE_HEIGHT,
+        height: PresentationSlide.PARAGRAPH_LINE_HEIGHT,
       ),
       listBullet: TextStyle(
         color: MyAppColors.color2,
@@ -208,41 +285,118 @@ class PresentationSlide extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: slideWidth * 0.035,
-                      fontWeight: FontWeight.bold,
-                      color: MyAppColors.color2,
-                    ),
-                  ),
+                  widget.isEditing
+                      ? TextField(
+                          controller: _titleController,
+                          style: TextStyle(
+                            fontSize: slideWidth * 0.035,
+                            fontWeight: FontWeight.bold,
+                            color: MyAppColors.color2,
+                          ),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                          ),
+                          onChanged: _updateTitle,
+                          onSubmitted: (_) => _commitTitleChanges(),
+                          onTapOutside: (_) => _commitTitleChanges(),
+                        )
+                      : Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: slideWidth * 0.035,
+                            fontWeight: FontWeight.bold,
+                            color: MyAppColors.color2,
+                          ),
+                        ),
                   SizedBox(height: slideHeight * 0.04),
-
-                  // Updated paragraphs section with markdown support
                   Expanded(
                     child: Container(
                       width: double.infinity,
                       padding: EdgeInsets.only(
-                        right: imagePrompt != null ? slideHeight * 0.5 + 8 : 0,
+                        right: widget.imagePrompt != null
+                            ? slideHeight * 0.5 + 8
+                            : 0,
                       ),
                       child: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: paragraphs
-                              .map((paragraph) => Padding(
-                                    padding: EdgeInsets.only(
-                                        bottom: slideHeight * 0.02),
-                                    child: MarkdownBody(
-                                      data: paragraph,
-                                      styleSheet: markdownStyle,
-                                      softLineBreak: true,
-                                      selectable: false,
-                                      onTapLink: (text, href, title) {
-                                        // Handle link taps if needed
-                                      },
-                                    ),
-                                  ))
-                              .toList(),
+                          children: [
+                            ...widget.paragraphs.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              return Padding(
+                                padding:
+                                    EdgeInsets.only(bottom: slideHeight * 0.02),
+                                child: widget.isEditing
+                                    ? Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: TextField(
+                                              controller:
+                                                  _paragraphControllers[index],
+                                              style: TextStyle(
+                                                fontSize: slideWidth * 0.022,
+                                                color: Colors.black87,
+                                                height: PresentationSlide
+                                                    .PARAGRAPH_LINE_HEIGHT,
+                                              ),
+                                              maxLines: null,
+                                              textInputAction:
+                                                  TextInputAction.done,
+                                              decoration: InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                              ),
+                                              onChanged: (value) =>
+                                                  _updateParagraph(
+                                                      index, value),
+                                              onSubmitted: (_) =>
+                                                  _commitParagraphChanges(
+                                                      index),
+                                              onTapOutside: (_) =>
+                                                  _commitParagraphChanges(
+                                                      index),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.delete,
+                                                color: Colors.red),
+                                            onPressed: () =>
+                                                widget.onRemoveParagraph(index),
+                                          ),
+                                        ],
+                                      )
+                                    : MarkdownBody(
+                                        data: entry.value,
+                                        styleSheet: markdownStyle,
+                                        softLineBreak: true,
+                                        selectable: false,
+                                      ),
+                              );
+                            }).toList(),
+                            if (widget.isEditing)
+                              Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: ElevatedButton.icon(
+                                  onPressed: () =>
+                                      widget.onAddParagraph("New paragraph"),
+                                  icon: Icon(Icons.add, size: 20),
+                                  label: Text("Add Paragraph"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: MyAppColors.color2,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -252,7 +406,7 @@ class PresentationSlide extends StatelessWidget {
             ),
 
             // Image section
-            if (imagePrompt != null)
+            if (widget.imagePrompt != null)
               Positioned(
                 right: 24,
                 bottom: 24,
@@ -270,14 +424,14 @@ class PresentationSlide extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (selectedImage != null)
+                      if (widget.selectedImage != null)
                         GestureDetector(
                           onTap: () => _showImageOptionsDialog(context),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
                               Image.file(
-                                selectedImage!,
+                                widget.selectedImage!,
                                 fit: BoxFit.cover,
                               ),
                               Container(
@@ -286,7 +440,7 @@ class PresentationSlide extends StatelessWidget {
                             ],
                           ),
                         )
-                      else if (!isGenerating)
+                      else if (!widget.isGenerating)
                         Stack(
                           fit: StackFit.expand,
                           children: [
@@ -317,7 +471,7 @@ class PresentationSlide extends StatelessWidget {
                         ),
 
                       // Loading indicator overlay
-                      if (isGenerating)
+                      if (widget.isGenerating)
                         Container(
                           color: Colors.black.withOpacity(0.1),
                           child: Center(
@@ -342,7 +496,7 @@ class PresentationSlide extends StatelessWidget {
                         ),
 
                       // Control overlay
-                      if (!isGenerating && selectedImage == null)
+                      if (!widget.isGenerating && widget.selectedImage == null)
                         Container(
                           // height: 40,
                           // width: 40,
@@ -381,7 +535,7 @@ class PresentationSlide extends StatelessWidget {
                                 IconButton(
                                   iconSize: 20,
                                   icon: Icon(Icons.auto_awesome),
-                                  onPressed: onGenerateImage,
+                                  onPressed: widget.onGenerateImage,
                                   color: Colors.white,
                                   // color: MyAppColors.color2,
                                 ),
@@ -404,7 +558,7 @@ class PresentationSlide extends StatelessWidget {
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
-      onImageSelected(File(pickedFile.path));
+      widget.onImageSelected(File(pickedFile.path));
     }
   }
 
@@ -456,7 +610,7 @@ class PresentationSlide extends StatelessWidget {
                   'Generate',
                   () {
                     Navigator.pop(context);
-                    onGenerateImage();
+                    widget.onGenerateImage();
                   },
                 ),
               ],
