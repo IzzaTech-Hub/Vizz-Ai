@@ -3,38 +3,26 @@ class GeminiPrompts {
     return '''
 Create a presentation outline for: "$topic"
 
-IMPORTANT: Respond ONLY with a JSON object. Do not include any other text, markdown, or explanations.
-The JSON must exactly follow this structure:
-
+Format your response as a JSON object with this structure:
 {
   "title": "Clear and engaging main title",
   "slides": [
     {
-      "slideTitle": "Specific and descriptive slide title",
-      "type": "One of: titleOneParagraph, titleTwoParagraphs, titleParaImage, titleTwoParaOneImage",
+      "slideTitle": "Specific slide title",
+      "type": "titleOneParagraph",
       "keyPoints": [
-        "Clear and actionable key point 1",
-        "Clear and actionable key point 2",
-        "Clear and actionable key point 3"
+        "Key point 1",
+        "Key point 2",
+        "Key point 3"
       ]
     }
   ]
 }
 
-Requirements:
-1. Generate 7-10 slides
-2. Each slide must have exactly 3-4 key points
-3. First slide must be an introduction
-4. Last slide must be a conclusion/summary
-5. Key points must be clear and specific
-6. No placeholder text
-7. No explanatory comments
-8. Pure JSON only
-9. Each slide must have one of these types:
-   - titleOneParagraph: Title with one paragraph
-   - titleTwoParagraphs: Title with two paragraphs
-   - titleParaImage: Title with paragraph and image
-   - titleTwoParaOneImage: Title with two paragraphs and one image
+Each slide should have 3-4 key points.
+Generate 7-10 slides total.
+First slide should be an introduction.
+Last slide should be a conclusion.
 ''';
   }
 
@@ -97,44 +85,76 @@ Each response must include:
 Do not include any explanatory text, only output the JSON structure.
 ''';
 
-  static String generateDetailedContentPrompt(String presentationOutline) {
+  static String generateDetailedContentPrompt(
+    String presentationOutline, {
+    String purpose = 'Informative',
+    String style = 'Professional',
+    String detailLevel = 'medium',
+    bool includeImages = true,
+  }) {
     return '''
 Convert this presentation outline into detailed slide content.
 
 Original Outline:
 $presentationOutline
 
+Presentation Settings:
+- Purpose: $purpose
+- Style: $style
+- Detail Level: $detailLevel
+- Include Images: $includeImages
+
 IMPORTANT: Respond ONLY with a JSON object. Do not include any other text or explanations.
-The JSON must follow this exact structure:
+The JSON must follow this EXACT structure:
 
 {
   "title": "Main presentation title",
   "slides": [
     {
       "title": "Slide title",
-      "type": "One of: titleOneParagraph, titleTwoParagraphs, titleParaImage, titleTwoParaOneImage",
-      "paragraphs": ["Detailed paragraph 1", "Detailed paragraph 2"],
-      "imagePrompt": "Detailed image generation prompt (only for slides with images)"
+      "type": "titleOneParagraph",
+      "paragraphs": [
+        "First paragraph with detailed content. Use markdown formatting like **bold** and *italic*.",
+        "Second paragraph if needed. Keep paragraphs concise (2-3 sentences)."
+      ],
+      "imagePrompt": "Optional: Detailed description for generating an image"
     }
   ]
 }
 
 Requirements:
-1. Use appropriate slide types:
-   - titleOneParagraph: For simple points
-   - titleTwoParagraphs: For detailed explanations
-   - titleParaImage: For visual concepts
-   - titleTwoParaOneImage: For complex topics with visuals
-2. Keep paragraphs concise (2-3 sentences max)
-3. Use markdown formatting:
-   - # for main points (red)
-   - ## for sub-points (maroon)
-   - **bold** for emphasis
-   - *italic* for secondary emphasis
-   - Bullet points for lists
-4. Image prompts should be detailed and specific
-5. Maintain logical flow between slides
-6. Each slide should focus on one key concept
+1. Use ONLY these slide types:
+   - titleOneParagraph: For simple points (1-2 paragraphs)
+   - titleTwoParagraphs: For detailed explanations (2 paragraphs)
+   - titleParaImage: For visual concepts (1 paragraph + image)
+   - titleTwoParaOneImage: For complex topics (2 paragraphs + image)
+
+2. Image Usage Guidelines:
+   ${includeImages ? '''
+   - When images are enabled (current setting), use image types for:
+     * Visual concepts that benefit from illustration
+     * Complex processes that need visual representation
+     * Data visualization opportunities
+     * Key concepts that would be clearer with visual aids
+   - Include at least 2-3 slides with images in the presentation
+   - For image slides, provide a detailed imagePrompt that describes what to generate
+   ''' : '''
+   - Images are disabled (current setting)
+   - Do NOT use titleParaImage or titleTwoParaOneImage types
+   - Convert any visual concepts to text-based explanations
+   '''}
+
+3. Each slide MUST have:
+   - A clear title
+   - One of the allowed types
+   - Appropriate content based on its type
+   - For image types: A detailed imagePrompt that describes what to generate
+
+4. Content Guidelines:
+   - Keep paragraphs concise (2-3 sentences)
+   - Use markdown formatting for emphasis
+   - Ensure logical flow between slides
+   - Maintain consistent style throughout
 ''';
   }
 }

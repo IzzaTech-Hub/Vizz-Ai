@@ -28,15 +28,28 @@ class PresentationOutline {
 }
 
 class SlideOutline {
-  final String slideTitle;
-  String type; // Made mutable
-  List<String> keyPoints; // Made mutable
+  String slideTitle; // Made mutable
+  String type;
+  List<String> keyPoints;
 
   SlideOutline({
     required this.slideTitle,
     required this.type,
     required this.keyPoints,
   });
+
+  // Add copyWith method for easy editing
+  SlideOutline copyWith({
+    String? slideTitle,
+    String? type,
+    List<String>? keyPoints,
+  }) {
+    return SlideOutline(
+      slideTitle: slideTitle ?? this.slideTitle,
+      type: type ?? this.type,
+      keyPoints: keyPoints ?? this.keyPoints,
+    );
+  }
 
   factory SlideOutline.fromJson(Map<String, dynamic> json) {
     return SlideOutline(

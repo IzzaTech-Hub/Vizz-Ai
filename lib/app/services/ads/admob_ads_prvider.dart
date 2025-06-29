@@ -336,10 +336,13 @@ class AdMobAdsProvider {
     if (_rewardedAd == null) {
       print('Warning: attempt to show rewarded before loaded.');
 
-      Get.back();
+      //  Get.back();
       EasyLoading.showError("No Ad Available try again later",
           duration: Duration(seconds: 2));
-      showNoAdAvailableDialog();
+      // showNoAdAvailableDialog();
+      AdMobAdsProvider.instance.showInterstitialAd(() {
+        // Navigate to home after ad is closed
+      });
 
       return;
     }

@@ -345,8 +345,8 @@ class HomeController extends GetxController {
         return;
       }
 
-      // First navigate, then hide loading
-      Get.toNamed(Routes.OUTLINE, arguments: topic);
+      // Navigate to presentation setup instead of outline
+      Get.toNamed(Routes.PRESENTATION_SETUP, arguments: topic);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -484,7 +484,7 @@ Do not include any explanatory text, only output the JSON structure.
   final count = 0.obs;
   @override
   void onInit() {
-      AdMobAdsProvider.instance.initialize();
+    AdMobAdsProvider.instance.initialize();
     initPrompts();
     super.onInit();
   }

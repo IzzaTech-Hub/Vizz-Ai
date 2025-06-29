@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:napkin/app/modules/splash/binding/splash_screen_binding.dart';
 import 'package:napkin/app/modules/splash/view/splash_screen_view.dart';
+import 'package:napkin/app/modules/presentation_setup/bindings/presentation_setup_binding.dart';
+import 'package:napkin/app/modules/presentation_setup/views/presentation_setup_view.dart';
 
 import '../modules/ai_responce/bindings/ai_responce_binding.dart';
 import '../modules/ai_responce/views/ai_responce_view.dart';
@@ -28,6 +30,13 @@ class AppPages {
       name: _Paths.HOME,
       page: () => HomeView(),
       binding: HomeBinding(),
+    ),
+    GetPage(
+      name: _Paths.PRESENTATION_SETUP,
+      page: () => PresentationSetupView(),
+      binding: PresentationSetupBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: const Duration(milliseconds: 250),
     ),
     GetPage(
       name: _Paths.OUTLINE,

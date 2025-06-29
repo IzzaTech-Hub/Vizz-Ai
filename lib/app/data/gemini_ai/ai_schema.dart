@@ -333,7 +333,6 @@ class AiSchema {
             'type': Schema(
               SchemaType.string,
               enumValues: [
-                // 'titleOnly',
                 'titleOneParagraph',
                 'titleTwoParagraphs',
                 'titleParaImage',
@@ -352,4 +351,36 @@ class AiSchema {
     },
     requiredProperties: ['title', 'slides'],
   );
+
+  static void printSchema() {
+    print('DEBUG: Presentation Content Schema:');
+    print('''
+{
+  "type": "object",
+  "required": ["title", "slides"],
+  "properties": {
+    "title": {"type": "string"},
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "type", "paragraphs"],
+        "properties": {
+          "title": {"type": "string"},
+          "type": {
+            "type": "string",
+            "enum": ["titleOneParagraph", "titleTwoParagraphs", "titleParaImage", "titleTwoParaOneImage"]
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "imagePrompt": {"type": "string"}
+        }
+      }
+    }
+  }
+}
+''');
+  }
 }

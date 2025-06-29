@@ -39,46 +39,6 @@ import 'package:napkin/app/widgets/presentation_slide.dart';
 class AiResponceView extends GetView<AiResponceController> {
   AiResponceView({Key? key}) : super(key: key);
 
-  void _showExportingOverlay(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(MyAppColors.color2),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Exporting PowerPoint...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   // // Banner Ad Implementation start // // //
 // ? Commented by jamal start
   late BannerAd myBanner;
@@ -143,23 +103,31 @@ class AiResponceView extends GetView<AiResponceController> {
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
         ),
         actions: [
+          IconButton(
+            onPressed: () => controller.toggleEditing(),
+            icon: Obx(() => Icon(
+                  controller.isEditing.value ? Icons.check : Icons.edit,
+                  color:Colors.white,
+                      // controller.isEditing.value ? Colors.green : Colors.white,
+                )),
+          ),
           StarFeedbackWidget(
             size: SizeConfig.blockSizeHorizontal * 5,
             mainContext: context,
             icon: Icons.flag,
           ),
-          IconButton(
-            onPressed: () async {
-              _showExportingOverlay(context);
-              final filePath = await controller.generatePPTX(context);
-              Navigator.of(context).pop(); // Dismiss the loading overlay
-              if (filePath.isNotEmpty) {
-                controller.shareFile(filePath);
-              }
-            },
-            icon: Icon(Icons.share, color: Colors.white),
-            tooltip: 'Save as PowerPoint',
-          ),
+          // IconButton(
+          //   onPressed: () async {
+          //     _showExportingOverlay(context);
+          //     final filePath = await controller.generatePPTX();
+          //     Navigator.of(context).pop(); // Dismiss the loading overlay
+          //     if (filePath.isNotEmpty) {
+          //       controller.shareFile(filePath);
+          //     }
+          //   },
+          //   icon: Icon(Icons.share, color: Colors.white),
+          //   tooltip: 'Save as PowerPoint',
+          // ),
           SizedBox(width: 16), // Add spacing from right edge
         ],
       ),
@@ -212,24 +180,62 @@ class AiResponceView extends GetView<AiResponceController> {
 
             // Slides list
             Expanded(
-              child: ListView.builder(
-                itemCount: controller.presentationContent.value!.slides.length,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, index) {
-                  final slide =
-                      controller.presentationContent.value!.slides[index];
-                  return Obx(() => PresentationSlide(
-                        title: slide.title,
-                        paragraphs: slide.paragraphs,
-                        imagePrompt: slide.imagePrompt,
-                        selectedImage: controller.selectedImages[index],
-                        onImageSelected: (file) =>
-                            controller.handleImageSelected(index, file),
-                        onGenerateImage: () => controller.generateImage(index),
-                        isGenerating:
-                            controller.imageGenerating[index] ?? false,
-                      ));
-                },
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 3.0,
+                child: ListView.builder(
+                  itemCount:
+                      controller.presentationContent.value!.slides.length,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemBuilder: (context, index) {
+                    final slide =
+                        controller.presentationContent.value!.slides[index];
+                    return Obx(() => PresentationSlide(
+                          title: slide.title,
+                          paragraphs: slide.paragraphs,
+                          imagePrompt: slide.imagePrompt,
+                          selectedImage: controller.selectedImages[index],
+                          onImageSelected: (file) =>
+                              controller.handleImageSelected(index, file),
+                          onGenerateImage: () =>
+                              controller.generateImage(index),
+                          isGenerating:
+                              controller.imageGenerating[index] ?? false,
+                          isEditing: controller.isEditing.value,
+                          onTitleChanged: (value) =>
+                              controller.updateSlideTitle(index, value),
+                          onParagraphChanged: (paragraphIndex, value) =>
+                              controller.updateSlideParagraph(
+                                  index, paragraphIndex, value),
+                          onAddParagraph: (value) =>
+                              controller.addSlideParagraph(index, value),
+                          onRemoveParagraph: (paragraphIndex) => controller
+                              .removeSlideParagraph(index, paragraphIndex),
+                        ));
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: ElevatedButton(
+                onPressed: () => controller.showExportOptions(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MyAppColors.color2,
+                  minimumSize: Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 2,
+                ),
+                child: Text(
+                  'Export and Share',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -255,37 +261,37 @@ class ParagraphContentView extends StatelessWidget {
       required this.controller,
       required this.slideHeight,
       required this.slideWidth});
-  void showLoading(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Prevents closing by tapping outside
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 10),
-                Text("Loading...", style: TextStyle(fontSize: 16)),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // void showLoading(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false, // Prevents closing by tapping outside
+  //     builder: (context) {
+  //       return Dialog(
+  //         backgroundColor: Colors.transparent,
+  //         child: Container(
+  //           padding: const EdgeInsets.all(20),
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.circular(10),
+  //           ),
+  //           child: const Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               CircularProgressIndicator(),
+  //               SizedBox(height: 10),
+  //               Text("Loading...", style: TextStyle(fontSize: 16)),
+  //             ],
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
 // Hide the loading dialog
-  void hideLoading(BuildContext context) {
-    Navigator.pop(context);
-  }
+  // void hideLoading(BuildContext context) {
+  //   Navigator.pop(context);
+  // }
 
   Future<String> generateKeyWords() async {
     String sysinstructionprompt =
