@@ -19,6 +19,8 @@ class PresentationSlide extends StatefulWidget {
   final Function(int, String) onParagraphChanged;
   final Function(String) onAddParagraph;
   final Function(int) onRemoveParagraph;
+  final Color? titleColor;
+  final Color? textColor;
 
   // Constants for text constraints
   static const double TITLE_MAX_CHARS = 40; // Maximum characters for title
@@ -114,6 +116,8 @@ class PresentationSlide extends StatefulWidget {
     required this.onParagraphChanged,
     required this.onAddParagraph,
     required this.onRemoveParagraph,
+    this.titleColor,
+    this.textColor,
   }) : super(key: key);
 
   @override
@@ -206,7 +210,7 @@ class _PresentationSlideState extends State<PresentationSlide> {
     final markdownStyle = MarkdownStyleSheet(
       h1: TextStyle(
         fontSize: slideWidth * 0.028,
-        color: MyAppColors.color1,
+        color: widget.titleColor ?? MyAppColors.color1,
         fontWeight: FontWeight.bold,
         height: 1.3,
       ),
@@ -218,7 +222,7 @@ class _PresentationSlideState extends State<PresentationSlide> {
       ),
       p: TextStyle(
         fontSize: slideWidth * 0.022,
-        color: Colors.black87,
+        color: widget.textColor ?? Colors.black87,
         height: PresentationSlide.PARAGRAPH_LINE_HEIGHT,
       ),
       listBullet: TextStyle(
@@ -261,7 +265,7 @@ class _PresentationSlideState extends State<PresentationSlide> {
       height: slideHeight,
       margin: EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -291,7 +295,7 @@ class _PresentationSlideState extends State<PresentationSlide> {
                           style: TextStyle(
                             fontSize: slideWidth * 0.035,
                             fontWeight: FontWeight.bold,
-                            color: MyAppColors.color2,
+                            color: widget.titleColor ?? MyAppColors.color2,
                           ),
                           decoration: InputDecoration(
                             border: OutlineInputBorder(),
@@ -307,7 +311,7 @@ class _PresentationSlideState extends State<PresentationSlide> {
                           style: TextStyle(
                             fontSize: slideWidth * 0.035,
                             fontWeight: FontWeight.bold,
-                            color: MyAppColors.color2,
+                            color: widget.titleColor ?? MyAppColors.color2,
                           ),
                         ),
                   SizedBox(height: slideHeight * 0.04),
@@ -339,7 +343,8 @@ class _PresentationSlideState extends State<PresentationSlide> {
                                                   _paragraphControllers[index],
                                               style: TextStyle(
                                                 fontSize: slideWidth * 0.022,
-                                                color: Colors.black87,
+                                                color: widget.textColor ??
+                                                    Colors.black87,
                                                 height: PresentationSlide
                                                     .PARAGRAPH_LINE_HEIGHT,
                                               ),

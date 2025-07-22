@@ -35,6 +35,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:napkin/app/data/models/slide_content_new.dart';
 import 'package:napkin/app/utills/app_colors.dart';
 import 'package:napkin/app/widgets/presentation_slide.dart';
+import 'package:napkin/app/services/templetes_handler.dart';
+import 'package:napkin/app/data/models/templete.dart';
+import 'dart:io';
 
 class AiResponceView extends GetView<AiResponceController> {
   AiResponceView({Key? key}) : super(key: key);
@@ -81,9 +84,23 @@ class AiResponceView extends GetView<AiResponceController> {
   } // ? Commented by jamal end
 
   // / Banner Ad Implementation End ///
+
+  // Template selection state
+  final RxList<Templete> templates = <Templete>[].obs;
+  final Rx<Templete?> selectedTemplate = Rx<Templete?>(null);
+  final RxBool isDownloading = false.obs;
+
   @override
   Widget build(BuildContext context) {
     initBanner(); // ? Commented by jamal
+
+    // Fetch templates on first build
+    if (templates.isEmpty) {
+      TempletesHandler.fetchTemplatesFromFirebase().then((list) {
+        templates.assignAll(list);
+        if (list.isNotEmpty) selectedTemplate.value = list.first;
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -107,8 +124,8 @@ class AiResponceView extends GetView<AiResponceController> {
             onPressed: () => controller.toggleEditing(),
             icon: Obx(() => Icon(
                   controller.isEditing.value ? Icons.check : Icons.edit,
-                  color:Colors.white,
-                      // controller.isEditing.value ? Colors.green : Colors.white,
+                  color: Colors.white,
+                  // controller.isEditing.value ? Colors.green : Colors.white,
                 )),
           ),
           StarFeedbackWidget(
@@ -132,30 +149,154 @@ class AiResponceView extends GetView<AiResponceController> {
         ],
       ),
       body: Obx(() {
+        // Template bar at the top
+        Widget templateBar = Container(
+          height: 133,
+          padding: EdgeInsets.only(top: 16, bottom: 16, left: 8, right: 8),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: templates.length,
+            itemBuilder: (context, index) {
+              final templete = templates[index];
+              final isActive = selectedTemplate.value?.id == templete.id;
+              return GestureDetector(
+                onTap: () async {
+                  if (await TempletesHandler.isTemplateDownloaded(templete)) {
+                    selectedTemplate.value = templete;
+                    controller.setSelectedTemplate(templete);
+                  } else {
+                    isDownloading.value = true;
+                    final localPaths =
+                        await TempletesHandler.downloadTemplateImages(templete);
+                    isDownloading.value = false;
+                    final newTemplate = Templete(
+                      id: templete.id,
+                      name: templete.name,
+                      previewImageUrl: templete.previewImageUrl,
+                      imageUrls: templete.imageUrls,
+                      localImagePaths: localPaths,
+                      titleColorHex: templete.titleColorHex,
+                      textColorHex: templete.textColorHex,
+                    );
+                    selectedTemplate.value = newTemplate;
+                    controller.setSelectedTemplate(newTemplate);
+                  }
+                },
+                child: Container(
+                  width: 140,
+                  // height: 80,
+                  margin: EdgeInsets.symmetric(horizontal: 8),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isActive ? Colors.blue : Colors.grey.shade300,
+                      width: isActive ? 3 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.network(
+                          templete.previewImageUrl,
+                          // width: 130,
+                          height: 56,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) =>
+                              Icon(Icons.image, size: 40),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              templete.name,
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isActive)
+                            Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Icon(Icons.check_circle,
+                                  color: Colors.blue, size: 16),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+
+        // Show loading indicator if downloading
+        if (isDownloading.value) {
+          return Center(child: CircularProgressIndicator());
+        }
+
         if (controller.isLoading.value) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: MyAppColors.color2),
-                SizedBox(height: 16),
-                Text('Generating detailed slides...',
-                    style: TextStyle(fontSize: 16)),
-              ],
-            ),
+          return Column(
+            children: [
+              templateBar,
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: MyAppColors.color2),
+                      SizedBox(height: 16),
+                      Text('Generating detailed slides...',
+                          style: TextStyle(fontSize: 16)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
         if (controller.presentationContent.value == null) {
-          return Center(
-            child: Text('No content generated yet'),
+          return Column(
+            children: [
+              templateBar,
+              Expanded(
+                child: Center(
+                  child: Text('No content generated yet'),
+                ),
+              ),
+            ],
           );
         }
 
+        // Use selectedTemplate for slide backgrounds and colors
+        final templete = selectedTemplate.value;
+        final slideBgImages = templete?.localImagePaths ?? [];
+        final titleColor = templete != null
+            ? Color(int.parse(templete.titleColorHex.replaceFirst('#', '0xff')))
+            : Colors.black;
+        final textColor = templete != null
+            ? Color(int.parse(templete.textColorHex.replaceFirst('#', '0xff')))
+            : Colors.black87;
+
         return Column(
           children: [
+            templateBar,
             verticalSpace(16),
-
             Obx(() => isBannerLoaded.value &&
                     AdMobAdsProvider.instance.isAdEnable.value
                 ? Container(
@@ -163,21 +304,6 @@ class AiResponceView extends GetView<AiResponceController> {
                     child: AdWidget(ad: myBanner))
                 : Container()), // ? Commented by jamal end
             verticalSpace(8),
-
-            // Title section
-            // Container(
-            //   padding: EdgeInsets.all(24),
-            //   child: Text(
-            //     controller.presentationContent.value!.title,
-            //     style: TextStyle(
-            //       fontSize: 24,
-            //       fontWeight: FontWeight.bold,
-            //       color: Colors.black87,
-            //     ),
-            //     textAlign: TextAlign.center,
-            //   ),
-            // ),
-
             // Slides list
             Expanded(
               child: InteractiveViewer(
@@ -190,28 +316,55 @@ class AiResponceView extends GetView<AiResponceController> {
                   itemBuilder: (context, index) {
                     final slide =
                         controller.presentationContent.value!.slides[index];
-                    return Obx(() => PresentationSlide(
-                          title: slide.title,
-                          paragraphs: slide.paragraphs,
-                          imagePrompt: slide.imagePrompt,
-                          selectedImage: controller.selectedImages[index],
-                          onImageSelected: (file) =>
-                              controller.handleImageSelected(index, file),
-                          onGenerateImage: () =>
-                              controller.generateImage(index),
-                          isGenerating:
-                              controller.imageGenerating[index] ?? false,
-                          isEditing: controller.isEditing.value,
-                          onTitleChanged: (value) =>
-                              controller.updateSlideTitle(index, value),
-                          onParagraphChanged: (paragraphIndex, value) =>
-                              controller.updateSlideParagraph(
-                                  index, paragraphIndex, value),
-                          onAddParagraph: (value) =>
-                              controller.addSlideParagraph(index, value),
-                          onRemoveParagraph: (paragraphIndex) => controller
-                              .removeSlideParagraph(index, paragraphIndex),
-                        ));
+                    // Alternate background images
+                    String? bgImagePath = slideBgImages.isNotEmpty
+                        ? slideBgImages[index % slideBgImages.length]
+                        : null;
+                    return Container(
+                      margin: EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: bgImagePath == null
+                            ? Colors.white
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        image: bgImagePath != null
+                            ? DecorationImage(
+                                image: FileImage(File(bgImagePath)),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: PresentationSlide(
+                        title: slide.title,
+                        paragraphs: slide.paragraphs,
+                        imagePrompt: slide.imagePrompt,
+                        selectedImage: controller.selectedImages[index],
+                        onImageSelected: (file) =>
+                            controller.handleImageSelected(index, file),
+                        onGenerateImage: () => controller.generateImage(index),
+                        isGenerating:
+                            controller.imageGenerating[index] ?? false,
+                        isEditing: controller.isEditing.value,
+                        onTitleChanged: (value) =>
+                            controller.updateSlideTitle(index, value),
+                        onParagraphChanged: (paragraphIndex, value) =>
+                            controller.updateSlideParagraph(
+                                index, paragraphIndex, value),
+                        onAddParagraph: (value) =>
+                            controller.addSlideParagraph(index, value),
+                        onRemoveParagraph: (paragraphIndex) => controller
+                            .removeSlideParagraph(index, paragraphIndex),
+                        titleColor: titleColor,
+                        textColor: textColor,
+                      ),
+                    );
                   },
                 ),
               ),

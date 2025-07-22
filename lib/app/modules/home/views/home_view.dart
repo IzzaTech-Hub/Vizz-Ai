@@ -14,6 +14,7 @@ import 'package:napkin/app/data/app_images.dart';
 import 'package:napkin/app/data/size_config.dart';
 import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
 import 'package:napkin/app/services/ads/adshandler.dart';
+import 'package:napkin/app/services/templetes_handler.dart';
 import 'package:napkin/app/utills/app_colors.dart';
 import 'package:scroll_loop_auto_scroll/scroll_loop_auto_scroll.dart';
 import 'package:share_plus/share_plus.dart';
@@ -297,6 +298,14 @@ https://play.google.com/store/apps/details?id=com.visualizerai.quicknotesai
               title: const Text('Share'),
               onTap: () => _shareApp(context),
             ),
+            // ListTile(
+            //   leading: const Icon(Icons.share),
+            //   title: const Text('Testing'),
+            //   onTap: () async {
+            //     await TempletesHandler.initialize();
+            //     print('Templates: ${TempletesHandler.templates.length}');
+            //   },
+            // ),
           ],
         ),
       ),

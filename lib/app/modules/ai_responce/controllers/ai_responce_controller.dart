@@ -35,6 +35,7 @@ import 'package:napkin/app/utills/app_colors.dart';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:napkin/app/data/models/templete.dart';
 
 class AiResponceController extends GetxController {
   String mainTitle = "";
@@ -53,6 +54,7 @@ class AiResponceController extends GetxController {
   final RxMap<int, bool> imageGenerating = RxMap<int, bool>();
   final Rx<PresentationSettings?> settings = Rx<PresentationSettings?>(null);
   final RxBool isEditing = false.obs;
+  Templete? selectedTemplate;
 
   @override
   void onInit() async {
@@ -92,21 +94,36 @@ class AiResponceController extends GetxController {
       if (presentationContent.value == null) {
         throw Exception("No presentation content available.");
       }
-
       final pres = FlutterPowerPoint();
-
-      // Loop through slides and add them one-by-one
+      final template = selectedTemplate;
+      final slideBgImages = template?.localImagePaths ?? [];
+      final titleColor = template != null
+          ? Color(int.parse(template.titleColorHex.replaceFirst('#', '0xff')))
+          : Colors.red[900]!;
+      final textColor = template != null
+          ? Color(int.parse(template.textColorHex.replaceFirst('#', '0xff')))
+          : Colors.black87;
       for (int i = 0; i < presentationContent.value!.slides.length; i++) {
         final slide = presentationContent.value!.slides[i];
         final hasImage =
             selectedImages.containsKey(i) && selectedImages[i] != null;
-
+        String? bgImagePath = slideBgImages.isNotEmpty
+            ? slideBgImages[i % slideBgImages.length]
+            : null;
         await pres.addWidgetSlide(
           (size) {
             return Container(
               height: slideHeight,
               width: slideWidth,
-              color: Colors.white,
+              decoration: BoxDecoration(
+                color: bgImagePath == null ? Colors.white : Colors.transparent,
+                image: bgImagePath != null
+                    ? DecorationImage(
+                        image: FileImage(File(bgImagePath)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
               child: (i == 0)
                   ? Center(
                       child: Text(
@@ -114,7 +131,7 @@ class AiResponceController extends GetxController {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.red[900],
+                          color: titleColor,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -130,7 +147,7 @@ class AiResponceController extends GetxController {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red[900],
+                              color: titleColor,
                             ),
                           ),
                         ),
@@ -151,14 +168,12 @@ class AiResponceController extends GetxController {
                                       for (String paragraph in slide.paragraphs)
                                         Padding(
                                           padding: EdgeInsets.only(bottom: 12),
-                                          child: MarkdownBody(
-                                            data: paragraph,
-                                            styleSheet: MarkdownStyleSheet(
-                                              p: TextStyle(
-                                                fontSize: 8,
-                                                color: Colors.black87,
-                                                height: 1.3,
-                                              ),
+                                          child: Text(
+                                            paragraph,
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              color: textColor,
+                                              height: 1.3,
                                             ),
                                           ),
                                         ),
@@ -192,33 +207,24 @@ class AiResponceController extends GetxController {
           context: context,
         );
       }
-
       final bytes = await pres.save();
       if (bytes == null || bytes.isEmpty) {
         throw Exception("Failed to generate PowerPoint content.");
       }
-
       Directory appDocDir = await Directory('/storage/emulated/0/Download');
-      // Directory appDocDir = await getApplicationDocumentsDirectory();
-
       String safeTitle = (presentationContent.value!.title.trim().isNotEmpty)
           ? presentationContent.value!.title
               .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
               .replaceAll(RegExp(r'\.+'), '.')
           : 'presentation';
-
       if (!safeTitle.endsWith('.pptx')) {
         safeTitle = '$safeTitle.pptx';
       }
-
       String filePath = '${appDocDir.path}/$safeTitle';
       final file = File(filePath);
-
       await file.writeAsBytes(bytes, flush: true);
-
       print('PPT generated at: $filePath');
       Get.snackbar("File Saved", "Slide has been saved as $safeTitle");
-
       return filePath;
     } catch (e) {
       print('Error generating PPTX: $e');
@@ -239,180 +245,149 @@ class AiResponceController extends GetxController {
       if (presentationContent.value == null) {
         throw Exception("No presentation content available.");
       }
-
       final pdf = pw.Document();
       final slideHeight = SizeConfig.screenWidth * 9 / 16;
       final slideWidth = SizeConfig.screenWidth;
-
+      final template = selectedTemplate;
+      final slideBgImages = template?.localImagePaths ?? [];
+      final titleColor = template != null
+          ? PdfColor.fromInt(
+              int.parse(template.titleColorHex.replaceFirst('#', '0xff')))
+          : PdfColors.red900;
+      final textColor = template != null
+          ? PdfColor.fromInt(
+              int.parse(template.textColorHex.replaceFirst('#', '0xff')))
+          : PdfColors.black;
       // Preload images
       Map<int, Uint8List> imageBytesMap = {};
       for (int index in selectedImages.keys) {
         imageBytesMap[index] = await selectedImages[index]!.readAsBytes();
       }
-
       for (int i = 0; i < presentationContent.value!.slides.length; i++) {
         final slide = presentationContent.value!.slides[i];
         final hasImage = imageBytesMap.containsKey(i);
-
+        String? bgImagePath = slideBgImages.isNotEmpty
+            ? slideBgImages[i % slideBgImages.length]
+            : null;
+        pw.Widget? background;
+        if (bgImagePath != null && File(bgImagePath).existsSync()) {
+          final bgBytes = await File(bgImagePath).readAsBytes();
+          background = pw.Image(pw.MemoryImage(bgBytes));
+        }
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.a4.landscape,
             build: (pw.Context ctx) {
-              return pw.Container(
-                // width: slideWidth,
-                // height: slideHeight,
-                color: PdfColors.white,
-                child: (i == 0)
-                    ? pw.Center(
-                        child: pw.Text(
-                          slide.title ?? presentationContent.value!.title,
-                          style: pw.TextStyle(
-                            fontSize: 36,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.red900,
-                          ),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      )
-                    : pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            slide.title,
+              return pw.Stack(children: [
+                if (background != null) background,
+                pw.Container(
+                  color: bgImagePath == null ? PdfColors.white : null,
+                  child: (i == 0)
+                      ? pw.Center(
+                          child: pw.Text(
+                            slide.title ?? presentationContent.value!.title,
                             style: pw.TextStyle(
-                              fontSize: 24,
+                              fontSize: 36,
                               fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.red900,
+                              color: titleColor,
                             ),
+                            textAlign: pw.TextAlign.center,
                           ),
-                          pw.SizedBox(height: 10),
-                          // pw.Row(
-                          //   crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          //   children: [
-                          //     // Text content
-                          //     pw.Expanded(
-                          //       flex: hasImage ? 3 : 1,
-                          //       child: pw.Column(
-                          //         crossAxisAlignment:
-                          //             pw.CrossAxisAlignment.start,
-                          //         children: [
-                          //           for (String paragraph in slide.paragraphs)
-                          //             pw.Padding(
-                          //               padding: pw.EdgeInsets.only(bottom: 8),
-                          //               child: pw.Text(
-                          //                 paragraph,
-                          //                 style: pw.TextStyle(
-                          //                   fontSize: 10,
-                          //                   color: PdfColors.black,
-                          //                 ),
-                          //               ),
-                          //             ),
-                          //         ],
-                          //       ),
-                          //     ),
-                          //     if (hasImage) ...[
-                          //       pw.SizedBox(width: 10),
-                          //       pw.Container(
-                          //         width: 150,
-                          //         height: 150,
-                          //         decoration: pw.BoxDecoration(
-                          //           borderRadius: pw.BorderRadius.circular(8),
-                          //         ),
-                          //         child: pw.Image(
-                          //           pw.MemoryImage(imageBytesMap[i]!),
-                          //           fit: pw.BoxFit.cover,
-                          //         ),
-                          //       ),
-                          //     ],
-                          //   ],
-                          // ),
-                          hasImage
-                              ? pw.Row(
-                                  crossAxisAlignment:
-                                      pw.CrossAxisAlignment.start,
-                                  children: [
-                                    pw.Expanded(
-                                      child: pw.Column(
-                                        crossAxisAlignment:
-                                            pw.CrossAxisAlignment.start,
-                                        children: [
-                                          for (String paragraph
-                                              in slide.paragraphs)
-                                            pw.Padding(
-                                              padding:
-                                                  pw.EdgeInsets.only(bottom: 8),
-                                              child: pw.Text(
-                                                paragraph,
-                                                style: pw.TextStyle(
-                                                  fontSize: 18,
-                                                  color: PdfColors.black,
+                        )
+                      : pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              slide.title,
+                              style: pw.TextStyle(
+                                fontSize: 24,
+                                fontWeight: pw.FontWeight.bold,
+                                color: titleColor,
+                              ),
+                            ),
+                            pw.SizedBox(height: 10),
+                            hasImage
+                                ? pw.Row(
+                                    crossAxisAlignment:
+                                        pw.CrossAxisAlignment.start,
+                                    children: [
+                                      pw.Expanded(
+                                        child: pw.Column(
+                                          crossAxisAlignment:
+                                              pw.CrossAxisAlignment.start,
+                                          children: [
+                                            for (String paragraph
+                                                in slide.paragraphs)
+                                              pw.Padding(
+                                                padding: pw.EdgeInsets.only(
+                                                    bottom: 8),
+                                                child: pw.Text(
+                                                  paragraph,
+                                                  style: pw.TextStyle(
+                                                    fontSize: 18,
+                                                    color: textColor,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    pw.SizedBox(width: 10),
-                                    pw.Container(
-                                      width: 150,
-                                      height: 150,
-                                      decoration: pw.BoxDecoration(
-                                        borderRadius:
-                                            pw.BorderRadius.circular(8),
-                                      ),
-                                      child: pw.Image(
-                                        pw.MemoryImage(imageBytesMap[i]!),
-                                        fit: pw.BoxFit.cover,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : pw.Column(
-                                  crossAxisAlignment:
-                                      pw.CrossAxisAlignment.start,
-                                  children: [
-                                    for (String paragraph in slide.paragraphs)
-                                      pw.Padding(
-                                        padding: pw.EdgeInsets.only(bottom: 8),
-                                        child: pw.Text(
-                                          paragraph,
-                                          style: pw.TextStyle(
-                                            fontSize: 18,
-                                            color: PdfColors.black,
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                  ],
-                                )
-                        ],
-                      ),
-              );
+                                      pw.SizedBox(width: 10),
+                                      pw.Container(
+                                        width: 150,
+                                        height: 150,
+                                        decoration: pw.BoxDecoration(
+                                          borderRadius:
+                                              pw.BorderRadius.circular(8),
+                                        ),
+                                        child: pw.Image(
+                                          pw.MemoryImage(imageBytesMap[i]!),
+                                          fit: pw.BoxFit.cover,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : pw.Column(
+                                    crossAxisAlignment:
+                                        pw.CrossAxisAlignment.start,
+                                    children: [
+                                      for (String paragraph in slide.paragraphs)
+                                        pw.Padding(
+                                          padding:
+                                              pw.EdgeInsets.only(bottom: 8),
+                                          child: pw.Text(
+                                            paragraph,
+                                            style: pw.TextStyle(
+                                              fontSize: 18,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  )
+                          ],
+                        ),
+                ),
+              ]);
             },
           ),
         );
       }
-
       final bytes = await pdf.save();
-
-      // Save to Downloads
       Directory dir = Directory('/storage/emulated/0/Download');
       String safeTitle = (presentationContent.value!.title.trim().isNotEmpty)
           ? presentationContent.value!.title
               .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
               .replaceAll(RegExp(r'\.+'), '.')
           : 'presentation';
-
       if (!safeTitle.endsWith('.pdf')) {
         safeTitle = '$safeTitle.pdf';
       }
-
       String filePath = '${dir.path}/$safeTitle';
       final file = File(filePath);
       await file.writeAsBytes(bytes, flush: true);
-
       print('PDF generated at: $filePath');
-      Get.snackbar("File Saved", "PDF has been saved as $safeTitle");
-
+      Get.snackbar("File Saved", "Slide has been saved as $safeTitle");
       return filePath;
     } catch (e) {
       print('Error generating PDF: $e');
@@ -904,6 +879,11 @@ class AiResponceController extends GetxController {
 
   void closeExportOverlay(BuildContext context) {
     Navigator.pop(context);
+  }
+
+  void setSelectedTemplate(Templete? templete) {
+    selectedTemplate = templete;
+    update();
   }
 
   Future<bool> showImageGenerationDialog() async {
