@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
@@ -55,6 +56,7 @@ class AiResponceController extends GetxController {
   final Rx<PresentationSettings?> settings = Rx<PresentationSettings?>(null);
   final RxBool isEditing = false.obs;
   Templete? selectedTemplate;
+  RxInt fakeUpdate = 1.obs;
 
   @override
   void onInit() async {
@@ -600,7 +602,8 @@ class AiResponceController extends GetxController {
       }
 
       final geminiImageService = GeminiImageService();
-      geminiImageService.initilize(RcVariables.apikey);
+      geminiImageService.initilize(ApiKeyPool.getKey());
+      // geminiImageService.initilize(RcVariables.apikey);
 
       final response = await geminiImageService.generateGeminiImage(
         prompt: slide.imagePrompt!,
@@ -663,7 +666,8 @@ class AiResponceController extends GetxController {
           'DEBUG: Initializing Gemini model with model: ${RcVariables.geminiAiModel}');
       final model = GenerativeModel(
         model: RcVariables.geminiAiModel,
-        apiKey: RcVariables.apikey,
+        apiKey: ApiKeyPool.getKey(),
+        // apiKey: RcVariables.apikey,
         generationConfig: GenerationConfig(
           temperature: 0.9,
           topK: 40,
@@ -732,6 +736,7 @@ class AiResponceController extends GetxController {
 
   void toggleEditing() {
     isEditing.value = !isEditing.value;
+    fakeUpdate.value++;
   }
 
   void updateSlideTitle(int index, String newTitle) {

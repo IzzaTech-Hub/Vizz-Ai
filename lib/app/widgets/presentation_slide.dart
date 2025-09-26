@@ -163,28 +163,81 @@ class _PresentationSlideState extends State<PresentationSlide> {
     super.dispose();
   }
 
-  void _updateTitle(String value) {
-    setState(() {
-      _tempTitle = value;
-    });
-  }
-
-  void _updateParagraph(int index, String value) {
-    setState(() {
-      _tempParagraphs[index] = value;
-    });
-  }
-
-  void _commitTitleChanges() {
-    if (_tempTitle != widget.title) {
-      widget.onTitleChanged(_tempTitle);
-    }
-  }
-
-  void _commitParagraphChanges(int index) {
-    if (_tempParagraphs[index] != widget.paragraphs[index]) {
-      widget.onParagraphChanged(index, _tempParagraphs[index]);
-    }
+  void _showEditDialog(
+    BuildContext context, {
+    required String title,
+    required bool isTitle,
+    required Function(String) onSave,
+  }) {
+    final TextEditingController controller = TextEditingController(text: title);
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isTitle ? 'Edit Slide Title' : 'Edit Paragraph',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: MyAppColors.color2,
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                maxLines: isTitle ? 2 : 5,
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (controller.text.trim().isNotEmpty) {
+                        onSave(controller.text.trim());
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: MyAppColors.color2,
+                      foregroundColor: Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: Text('Done'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -290,21 +343,32 @@ class _PresentationSlideState extends State<PresentationSlide> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   widget.isEditing
-                      ? TextField(
-                          controller: _titleController,
-                          style: TextStyle(
-                            fontSize: slideWidth * 0.035,
-                            fontWeight: FontWeight.bold,
-                            color: widget.titleColor ?? MyAppColors.color2,
+                      ? GestureDetector(
+                          onTap: () => _showEditDialog(
+                            context,
+                            title: widget.title,
+                            isTitle: true,
+                            onSave: (value) => widget.onTitleChanged(value),
                           ),
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      fontSize: slideWidth * 0.035,
+                                      fontWeight: FontWeight.bold,
+                                      color: widget.titleColor ??
+                                          MyAppColors.color2,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.edit, size: 20, color: Colors.grey),
+                              ],
+                            ),
                           ),
-                          onChanged: _updateTitle,
-                          onSubmitted: (_) => _commitTitleChanges(),
-                          onTapOutside: (_) => _commitTitleChanges(),
                         )
                       : Text(
                           widget.title,
@@ -333,49 +397,62 @@ class _PresentationSlideState extends State<PresentationSlide> {
                                 padding:
                                     EdgeInsets.only(bottom: slideHeight * 0.02),
                                 child: widget.isEditing
-                                    ? Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: TextField(
-                                              controller:
-                                                  _paragraphControllers[index],
-                                              style: TextStyle(
-                                                fontSize: slideWidth * 0.022,
-                                                color: widget.textColor ??
-                                                    Colors.black87,
-                                                height: PresentationSlide
-                                                    .PARAGRAPH_LINE_HEIGHT,
+                                    ? GestureDetector(
+                                        onTap: () => _showEditDialog(
+                                          context,
+                                          title: entry.value,
+                                          isTitle: false,
+                                          onSave: (value) => widget
+                                              .onParagraphChanged(index, value),
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 8),
+                                                child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: MarkdownBody(
+                                                        data: entry.value,
+                                                        styleSheet:
+                                                            markdownStyle,
+                                                        softLineBreak: true,
+                                                        selectable: false,
+                                                      ),
+                                                    ),
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.edit,
+                                                            size: 16,
+                                                            color: Colors.grey),
+                                                        SizedBox(width: 8),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                              Icons.delete,
+                                                              size: 16),
+                                                          color: Colors.red,
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          constraints:
+                                                              BoxConstraints(),
+                                                          onPressed: () => widget
+                                                              .onRemoveParagraph(
+                                                                  index),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
-                                              maxLines: null,
-                                              textInputAction:
-                                                  TextInputAction.done,
-                                              decoration: InputDecoration(
-                                                border: OutlineInputBorder(),
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                              ),
-                                              onChanged: (value) =>
-                                                  _updateParagraph(
-                                                      index, value),
-                                              onSubmitted: (_) =>
-                                                  _commitParagraphChanges(
-                                                      index),
-                                              onTapOutside: (_) =>
-                                                  _commitParagraphChanges(
-                                                      index),
                                             ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(Icons.delete,
-                                                color: Colors.red),
-                                            onPressed: () =>
-                                                widget.onRemoveParagraph(index),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       )
                                     : MarkdownBody(
                                         data: entry.value,

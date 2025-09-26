@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 
 class GeminiImageService {
   static String? _apiKey;
   void initilize(String apikey) {
-    _apiKey = apikey;
+      _apiKey = apikey;
   }
 
   Future<GeminiImageResponse> generateGeminiImage({
@@ -15,8 +16,9 @@ class GeminiImageService {
   }) async {
     String? message;
     Uint8List? imagebytes;
+    final apiKey = ApiKeyPool.getKey();
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=$_apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=$apiKey',
     );
 
     final headers = {'Content-Type': 'application/json'};

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:get/get.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/models/presentation_outline.dart';
@@ -52,7 +53,8 @@ class OutlineController extends GetxController {
         print('DEBUG: Initializing GenerativeModel...');
         final model = GenerativeModel(
           model: RcVariables.geminiAiModel,
-          apiKey: RcVariables.apikey,
+          apiKey: ApiKeyPool.getKey(),
+          // apiKey: RcVariables.apikey,
           generationConfig: GenerationConfig(
             temperature: 0.2,
             topK: 40,

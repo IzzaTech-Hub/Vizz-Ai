@@ -1,3 +1,4 @@
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
 import 'data/rc_variables.dart';
@@ -25,7 +26,8 @@ Format your response as JSON with this structure:
 
     final model = GenerativeModel(
       model: RcVariables.geminiAiModel,
-      apiKey: RcVariables.apikey,
+      apiKey: ApiKeyPool.getKey(),
+      // apiKey: RcVariables.apikey,
       generationConfig: GenerationConfig(
         temperature: 0.2,
         topK: 40,
@@ -35,9 +37,9 @@ Format your response as JSON with this structure:
       ),
     );
 
-    print("Prompt: $prompt");
-    print(
-        "Model: ${RcVariables.geminiAiModel}, API Key: ${RcVariables.apikey.substring(0, 5)}...");
+    // print("Prompt: $prompt");
+    // print(
+    //     "Model: ${RcVariables.geminiAiModel}, API Key: ${RcVariables.apikey.substring(0, 5)}...");
 
     final response = await model.generateContent([Content.text(prompt)]);
 

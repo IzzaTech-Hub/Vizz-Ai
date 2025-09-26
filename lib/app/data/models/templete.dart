@@ -4,7 +4,7 @@ import 'dart:ui';
 class Templete {
   final String id;
   final String name;
-  final String previewImageUrl;
+
   final List<String> imageUrls; // Remote URLs from Firebase
   final List<String> localImagePaths; // Local file paths after download
   final String titleColorHex;
@@ -13,7 +13,7 @@ class Templete {
   Templete({
     required this.id,
     required this.name,
-    required this.previewImageUrl,
+
     required this.imageUrls,
     required this.localImagePaths,
     required this.titleColorHex,
@@ -24,7 +24,7 @@ class Templete {
     return Templete(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
-      previewImageUrl: json['previewImageUrl'] ?? '',
+
       imageUrls: List<String>.from(json['imageUrls'] ?? []),
       localImagePaths: List<String>.from(json['localImagePaths'] ?? []),
       titleColorHex: json['titleColor'] ?? '#000000',
@@ -36,7 +36,7 @@ class Templete {
     return {
       'id': id,
       'name': name,
-      'previewImageUrl': previewImageUrl,
+
       'imageUrls': imageUrls,
       'localImagePaths': localImagePaths,
       'titleColor': titleColorHex,

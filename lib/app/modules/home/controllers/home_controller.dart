@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -367,7 +368,8 @@ Do not include any explanatory text, only output the JSON structure.
 
     final model = GenerativeModel(
       model: RcVariables.geminiAiModel,
-      apiKey: RcVariables.apikey,
+      apiKey: ApiKeyPool.getKey(),
+      // apiKey: RcVariables.apikey,
       generationConfig: GenerationConfig(
         temperature: 0.9,
         topK: 40,
@@ -572,7 +574,8 @@ Format all content clearly, adhering to the above instructions strictly.
       // model: 'gemini-1.5-flash-8b',
       // model: 'gemini-1.5-flash',
       // apiKey: 'AIzaSyCj-pkjlMrppk-ZNsPlkFq5U9t9jeUahr8',
-      apiKey: RcVariables.apikey,
+      apiKey: ApiKeyPool.getKey(),
+      // apiKey: RcVariables.apikey,
       generationConfig: GenerationConfig(
           temperature: 1,
           topK: 40,

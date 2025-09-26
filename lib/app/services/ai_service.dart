@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:napkin/app/data/rc_variables.dart';
 
@@ -15,7 +16,8 @@ class AiService {
 
         final model = GenerativeModel(
           model: RcVariables.geminiAiModel,
-          apiKey: RcVariables.apikey,
+          apiKey: ApiKeyPool.getKey(),
+          // apiKey: RcVariables.apikey,
           generationConfig: GenerationConfig(
             temperature:
                 0.7, // Lowered temperature for more predictable outputs

@@ -45,6 +45,8 @@ class AdMobAdsProvider {
     _lastInterstitialShownTime = DateTime.now().subtract(Duration(seconds: 50));
     _createInterstitialAd();
     createRewardedAd();
+    initBanner();
+    initNative();
     // _createRewardedInterstitialAd();[j.]
     // _createRewardedInterstitialAdGame();
     // loadAdRewardedInter();
@@ -164,7 +166,7 @@ class AdMobAdsProvider {
       },
     );
 
-    BannerAd myBanner = BannerAd(
+    myBanner = BannerAd(
       adUnitId: AppStrings.ADMOB_BANNER,
       size: AdSize.banner,
       request: AdRequest(),

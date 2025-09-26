@@ -18,9 +18,10 @@ android {
     namespace = "com.visualizerai.quicknotesai"
 
     // compileSdk = flutter.compileSdkVersion
-    compileSdk = 35  // ✅ Upgraded from Flutter-managed to fixed API 35
+    compileSdk = 36  // ✅ Upgraded from Flutter-managed to fixed API 35
 
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
+    // ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -35,10 +36,10 @@ android {
         applicationId = "com.visualizerai.quicknotesai"
 
         // minSdk = flutter.minSdkVersion
-        minSdk = 21  // ✅ Set to API 21 (or use your existing minimum supported)
+        minSdk = 24  // ✅ Set to API 21 (or use your existing minimum supported)
 
         // targetSdk = flutter.targetSdkVersion
-        targetSdk = 35  // ✅ Upgraded to API 35 for Android 14 support
+        targetSdk = 36  // ✅ Upgraded to API 35 for Android 14 support
 
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -63,4 +64,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation 'com.android.billingclient:billing:7.1.1' // or a newer version
 }

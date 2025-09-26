@@ -1,3 +1,4 @@
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:napkin/app/modules/app_bindings.dart';
 import 'package:napkin/app/services/rate_us_service.dart';
 import 'package:napkin/app/services/remote_config_service.dart';
+import 'package:napkin/app/services/templetes_handler.dart';
 // import 'package:google_generative_ai/google_generative_ai.dart';
 // import 'package:napkin/app/data/rc_variables.dart';
 // import 'package:napkin/app/test_gemini.dart';
@@ -41,7 +43,11 @@ void main() async {
   RateUsService.initialize();
 
   await Firebase.initializeApp();
+  await ApiKeyPool.init('Vizz AI');
   RemoteConfigService().initialize();
+  
+  // Initialize template handler for automatic background sync
+  TempletesHandler.instance.initialize();
 
   // // Test the Gemini API directly
   // print("TESTING SIMPLE API CALL");

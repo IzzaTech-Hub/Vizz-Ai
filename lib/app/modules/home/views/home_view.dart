@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'package:get/get.dart';
 import 'package:get/get_connect/http/src/utils/utils.dart';
@@ -16,6 +17,7 @@ import 'package:napkin/app/services/ads/admob_ads_prvider.dart';
 import 'package:napkin/app/services/ads/adshandler.dart';
 import 'package:napkin/app/services/templetes_handler.dart';
 import 'package:napkin/app/utills/app_colors.dart';
+import 'package:napkin/app/utills/app_strings.dart';
 import 'package:scroll_loop_auto_scroll/scroll_loop_auto_scroll.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,6 +26,35 @@ import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   HomeView({super.key});
+
+  // Banner Ad Implementation
+  late BannerAd myBanner;
+  RxBool isBannerLoaded = false.obs;
+
+  initBanner() {
+    BannerAdListener listener = BannerAdListener(
+      onAdLoaded: (Ad ad) {
+        print('Home Banner Ad loaded.');
+        isBannerLoaded.value = true;
+      },
+      onAdFailedToLoad: (Ad ad, LoadAdError error) {
+        ad.dispose();
+        print('Home Banner Ad failed to load: $error');
+      },
+      onAdOpened: (Ad ad) => print('Home Banner Ad opened.'),
+      onAdClosed: (Ad ad) => print('Home Banner Ad closed.'),
+      onAdImpression: (Ad ad) => print('Home Banner Ad impression.'),
+    );
+
+    myBanner = BannerAd(
+      adUnitId: AppStrings.ADMOB_BANNER,
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: listener,
+    );
+    myBanner.load();
+  }
+
   void _shareApp(BuildContext context) async {
     try {
       // Load image from assets
@@ -76,6 +107,7 @@ https://play.google.com/store/apps/details?id=com.visualizerai.quicknotesai
 
   @override
   Widget build(BuildContext context) {
+    initBanner();
     SizeConfig().init(context);
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -273,6 +305,19 @@ https://play.google.com/store/apps/details?id=com.visualizerai.quicknotesai
                   ),
                 ],
               ),
+            ),
+            // Banner Ad at bottom
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Obx(() => isBannerLoaded.value
+                  ? Container(
+                      alignment: Alignment.center,
+                      width: myBanner.size.width.toDouble(),
+                      height: myBanner.size.height.toDouble(),
+                      child: AdWidget(ad: myBanner))
+                  : SizedBox()),
             )
           ],
         ),

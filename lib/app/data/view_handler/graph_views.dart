@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:napkin/app/data/model_classes/graph_class.dart';
 import 'package:napkin/app/data/theme_assets/theme_functions.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+// import 'package:syncfusion_flutter_charts/charts.dart';
 
 class GraphViews {
   static Widget getTheme(int index, GraphModel model) {
@@ -52,31 +52,31 @@ class GraphViews {
     return SingleChildScrollView(
       child: Column(
         children: [
-          SfCircularChart(
-              title: ChartTitle(text: model.heading ?? 'Chart'),
-              legend: Legend(
-                  isVisible: false,
-                  position: LegendPosition.right,
-                  legendItemBuilder:
-                      (String name, dynamic series, dynamic point, int index) {
-                    final item = pieData[index];
-                    return Text(
-                      item.xData,
-                      style: TextStyle(
-                          color: item.color,
-                          fontWeight: FontWeight.bold), // Customize label color
-                    );
-                  }),
-              tooltipBehavior: TooltipBehavior(enable: true),
-              series: <PieSeries<_PieData, String>>[
-                PieSeries<_PieData, String>(
-                    dataSource: pieData,
-                    xValueMapper: (_PieData data, _) => data.xData,
-                    yValueMapper: (_PieData data, _) => data.yData,
-                    pointColorMapper: (_PieData data, _) => data.color,
-                    dataLabelMapper: (_PieData data, _) => data.text,
-                    dataLabelSettings: DataLabelSettings(isVisible: true)),
-              ]), // your chart
+          // SfCircularChart(
+          //     title: ChartTitle(text: model.heading ?? 'Chart'),
+          //     legend: Legend(
+          //         isVisible: false,
+          //         position: LegendPosition.right,
+          //         legendItemBuilder:
+          //             (String name, dynamic series, dynamic point, int index) {
+          //           final item = pieData[index];
+          //           return Text(
+          //             item.xData,
+          //             style: TextStyle(
+          //                 color: item.color,
+          //                 fontWeight: FontWeight.bold), // Customize label color
+          //           );
+          //         }),
+          //     tooltipBehavior: TooltipBehavior(enable: true),
+          //     series: <PieSeries<_PieData, String>>[
+          //       PieSeries<_PieData, String>(
+          //           dataSource: pieData,
+          //           xValueMapper: (_PieData data, _) => data.xData,
+          //           yValueMapper: (_PieData data, _) => data.yData,
+          //           pointColorMapper: (_PieData data, _) => data.color,
+          //           dataLabelMapper: (_PieData data, _) => data.text,
+          //           dataLabelSettings: DataLabelSettings(isVisible: true)),
+          //     ]), // your chart
 
           const SizedBox(height: 16),
 

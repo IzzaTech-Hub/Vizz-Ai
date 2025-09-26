@@ -2,6 +2,7 @@ import 'dart:convert';
 // import 'dart:math';
 // import 'dart:nativewrappers/_internal/vm/lib/mirrors_patch.dart';
 
+import 'package:api_key_pool/api_key_pool.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
@@ -44,8 +45,12 @@ class AiResponceView extends GetView<AiResponceController> {
 
   // // Banner Ad Implementation start // // //
 // ? Commented by jamal start
-  late BannerAd myBanner;
-  RxBool isBannerLoaded = false.obs;
+  late final BannerAd myBanner;
+  final RxBool isBannerLoaded = false.obs;
+
+  // Native Ad Implementation
+  NativeAd? _nativeAd;
+  final RxBool nativeAdIsLoaded = false.obs;
 
   initBanner() {
     BannerAdListener listener = BannerAdListener(
@@ -81,26 +86,115 @@ class AiResponceView extends GetView<AiResponceController> {
       listener: listener,
     );
     myBanner.load();
+  }
+
+  initNativeAd() {
+    _nativeAd = NativeAd(
+      adUnitId: AppStrings.ADMOB_NATIVE,
+      request: AdRequest(),
+      factoryId: 'adFactoryExample',
+      listener: NativeAdListener(
+        onAdLoaded: (Ad ad) {
+          print('Native Ad loaded.');
+          nativeAdIsLoaded.value = true;
+        },
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          print('Native Ad failedToLoad: $error');
+          ad.dispose();
+        },
+        onAdOpened: (Ad ad) => print('Native Ad onAdOpened.'),
+        onAdClosed: (Ad ad) => print('Native Ad onAdClosed.'),
+      ),
+    )..load();
   } // ? Commented by jamal end
 
   // / Banner Ad Implementation End ///
 
-  // Template selection state
-  final RxList<Templete> templates = <Templete>[].obs;
+  // Template selection state - now using the new handler
+  final TempletesHandler _templateHandler = TempletesHandler.instance;
+  final RxList<Templete> availableTemplates = <Templete>[].obs;
+  final RxList<Templete> allTemplates = <Templete>[].obs;
   final Rx<Templete?> selectedTemplate = Rx<Templete?>(null);
-  final RxBool isDownloading = false.obs;
+  final RxBool isInitializing = true.obs;
+  final RxInt downloadedCount = 0.obs;
+  final RxString downloadStatus = ''.obs;
+
+  // Initialize templates and setup streams
+  void _initializeTemplates() {
+    if (isInitializing.value) {
+      _loadTemplates();
+      isInitializing.value = false;
+    }
+  }
+
+  void _setupTemplateStreams() {
+    // Listen to template updates from the handler
+    _templateHandler.templatesStream.listen((templates) {
+      allTemplates.assignAll(templates);
+      _updateAvailableTemplates();
+    });
+
+    // Listen to download progress
+    _templateHandler.downloadProgressStream.listen((progress) {
+      downloadStatus.value =
+          'Downloading ${progress.templateName}... ${(progress.progress * 100).toInt()}%';
+      if (progress.isComplete) {
+        downloadStatus.value = '';
+        _updateAvailableTemplates();
+      }
+    });
+  }
+
+  void _loadTemplates() async {
+    try {
+      // Get all templates from handler
+      final templates = await _templateHandler.getTemplates();
+      allTemplates.assignAll(templates);
+
+      // Update available templates (only fully downloaded ones)
+      await _updateAvailableTemplates();
+
+      // Start downloading missing templates in background
+      _startBackgroundDownloads();
+    } catch (e) {
+      print('Error loading templates: $e');
+    }
+  }
+
+  Future<void> _updateAvailableTemplates() async {
+    final available = <Templete>[];
+
+    for (final template in allTemplates) {
+      if (await _templateHandler.isTemplateAvailableLocally(template.id)) {
+        available.add(template);
+      }
+    }
+
+    availableTemplates.assignAll(available);
+    downloadedCount.value = available.length;
+
+    // Auto-select first available template if none selected
+    if (selectedTemplate.value == null && available.isNotEmpty) {
+      selectedTemplate.value = available.first;
+      controller.setSelectedTemplate(available.first);
+    }
+  }
+
+  void _startBackgroundDownloads() {
+    // Queue all templates for download in background
+    for (final template in allTemplates) {
+      _templateHandler.downloadTemplate(template.id, priority: false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    initBanner(); // ? Commented by jamal
+    initBanner();
+    initNativeAd(); // ? Commented by jamal
 
-    // Fetch templates on first build
-    if (templates.isEmpty) {
-      TempletesHandler.fetchTemplatesFromFirebase().then((list) {
-        templates.assignAll(list);
-        if (list.isNotEmpty) selectedTemplate.value = list.first;
-      });
-    }
+    // Initialize template handler and load templates
+    _initializeTemplates();
+    _setupTemplateStreams();
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -149,106 +243,145 @@ class AiResponceView extends GetView<AiResponceController> {
         ],
       ),
       body: Obx(() {
-        // Template bar at the top
+        // Template bar at the top - now shows only downloaded templates
         Widget templateBar = Container(
-          height: 133,
-          padding: EdgeInsets.only(top: 16, bottom: 16, left: 8, right: 8),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: templates.length,
-            itemBuilder: (context, index) {
-              final templete = templates[index];
-              final isActive = selectedTemplate.value?.id == templete.id;
-              return GestureDetector(
-                onTap: () async {
-                  if (await TempletesHandler.isTemplateDownloaded(templete)) {
-                    selectedTemplate.value = templete;
-                    controller.setSelectedTemplate(templete);
-                  } else {
-                    isDownloading.value = true;
-                    final localPaths =
-                        await TempletesHandler.downloadTemplateImages(templete);
-                    isDownloading.value = false;
-                    final newTemplate = Templete(
-                      id: templete.id,
-                      name: templete.name,
-                      previewImageUrl: templete.previewImageUrl,
-                      imageUrls: templete.imageUrls,
-                      localImagePaths: localPaths,
-                      titleColorHex: templete.titleColorHex,
-                      textColorHex: templete.textColorHex,
-                    );
-                    selectedTemplate.value = newTemplate;
-                    controller.setSelectedTemplate(newTemplate);
-                  }
-                },
-                child: Container(
-                  width: 140,
-                  // height: 80,
-                  margin: EdgeInsets.symmetric(horizontal: 8),
-                  padding: EdgeInsets.all(8),
+          height: 150, // Slightly increased for status info
+          padding: EdgeInsets.only(top: 8, bottom: 16, left: 8, right: 8),
+          child: Column(
+            children: [
+              // Status row showing download progress
+              if (controller.fakeUpdate.value > 0 &&
+                      downloadStatus.value.isNotEmpty ||
+                  downloadedCount.value < allTemplates.length)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isActive ? Colors.blue : Colors.grey.shade300,
-                      width: isActive ? 3 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.network(
-                          templete.previewImageUrl,
-                          // width: 130,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) =>
-                              Icon(Icons.image, size: 40),
+                      Icon(Icons.download, size: 16, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          downloadStatus.value.isNotEmpty
+                              ? downloadStatus.value
+                              : 'Downloaded ${downloadedCount.value}/${allTemplates.length} templates',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.blue.shade700),
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              templete.name,
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      if (downloadStatus.value.isNotEmpty)
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.blue),
                           ),
-                          if (isActive)
-                            Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(Icons.check_circle,
-                                  color: Colors.blue, size: 16),
-                            ),
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 ),
-              );
-            },
+              // Templates list - only available (downloaded) templates
+              Expanded(
+                child: availableTemplates.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.download, size: 32, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text(
+                              'Downloading templates...',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: availableTemplates.length,
+                        itemBuilder: (context, index) {
+                          final template = availableTemplates[index];
+                          final isActive =
+                              selectedTemplate.value?.id == template.id;
+                          return GestureDetector(
+                            onTap: () {
+                              // Template is guaranteed to be downloaded, so just select it
+                              selectedTemplate.value = template;
+                              controller.setSelectedTemplate(template);
+                            },
+                            child: Container(
+                              width: 140,
+                              margin: EdgeInsets.symmetric(horizontal: 8),
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isActive
+                                      ? Colors.blue
+                                      : Colors.grey.shade300,
+                                  width: isActive ? 3 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.file(
+                                      File(template.localImagePaths.first),
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (c, e, s) =>
+                                          Icon(Icons.image, size: 40),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          template.name,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isActive)
+                                        Padding(
+                                          padding: EdgeInsets.only(left: 4),
+                                          child: Icon(Icons.check_circle,
+                                              color: Colors.blue, size: 16),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         );
 
-        // Show loading indicator if downloading
-        if (isDownloading.value) {
-          return Center(child: CircularProgressIndicator());
-        }
-
+        // Show loading states
         if (controller.isLoading.value) {
           return Column(
             children: [
@@ -458,7 +591,8 @@ class ParagraphContentView extends StatelessWidget {
       // model: 'gemini-1.5-flash-8b',
       // model: 'gemini-1.5-flash',
       // apiKey: 'AIzaSyCj-pkjlMrppk-ZNsPlkFq5U9t9jeUahr8',
-      apiKey: RcVariables.apikey,
+      apiKey: ApiKeyPool.getKey(),
+      // apiKey: RcVariables.apikey,
       generationConfig: GenerationConfig(
           temperature: 1,
           topK: 40,
